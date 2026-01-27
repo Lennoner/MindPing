@@ -1,7 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-import { SAMPLE_MESSAGES } from '../constants/data';
+import { SAMPLE_MESSAGES, MessageData } from '../constants/data';
+import { useUserStore } from '../stores/userStore';
 
 // 알림 핸들러 설정 (앱 실행 중에도 알림 표시)
 Notifications.setNotificationHandler({
@@ -56,8 +57,32 @@ export async function scheduleRandomDailyMessage(userTimeSlots: string[]) {
         return;
     }
 
-    // 1. 메시지 랜덤 선택
-    const randomMessage = SAMPLE_MESSAGES[Math.floor(Math.random() * SAMPLE_MESSAGES.length)];
+    // 1. 메시지 스마트 선택 (MVP 로직)
+    const store = useUserStore.getState();
+    const { lastMessageId, lastMessageType } = store;
+
+    let candidateMessages = SAMPLE_MESSAGES;
+
+    // 필터 1: 직전 메시지와 중복 방지 (간단한 버전)
+    if (lastMessageId) {
+        candidateMessages = candidateMessages.filter(msg => msg.id !== lastMessageId);
+    }
+
+    // 필터 2: 질문형 연속 방지
+    if (lastMessageType === 'question') {
+        const nonQuestionMessages = candidateMessages.filter(msg => msg.type !== 'question');
+        // 혹시 필터링 후 남은 게 없으면(그럴 리 없지만) 전체 풀 사용
+        if (nonQuestionMessages.length > 0) {
+            candidateMessages = nonQuestionMessages;
+        }
+    }
+
+    // 랜덤 선택
+    const randomMessage = candidateMessages[Math.floor(Math.random() * candidateMessages.length)];
+
+    // 선택된 메시지 정보 저장 (다음 발송 시 활용)
+    // 주의: 실제 발송 시점이 아니라 '예약' 시점에 저장되므로 오차가 있을 수 있음
+    store.setLastMessage(randomMessage.id, randomMessage.type);
 
     // 2. 시간대 랜덤 선택 및 구체적 시간 생성
     // 예: 'morning' (06-09) -> 07:30

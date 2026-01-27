@@ -27,6 +27,10 @@ interface UserState {
     subscriptionEndDate: Date | null;
     isTrialActive: boolean;
 
+    // 메시지 수신 이력
+    lastMessageId: string | null;
+    lastMessageType: 'question' | 'comfort' | 'wisdom' | null;
+
     // 액션
     setUser: (user: User) => void;
     updateUser: (updates: Partial<User>) => void;
@@ -38,6 +42,8 @@ interface UserState {
 
     setSubscription: (plan: PlanType, endDate: Date | null) => void;
     startTrial: () => void;
+
+    setLastMessage: (id: string, type: 'question' | 'comfort' | 'wisdom') => void;
 }
 
 export const useUserStore = create<UserState>()(
@@ -54,6 +60,9 @@ export const useUserStore = create<UserState>()(
             subscriptionPlan: 'free',
             subscriptionEndDate: null,
             isTrialActive: false,
+
+            lastMessageId: null,
+            lastMessageType: null,
 
             // 액션
             setUser: (user) => set({ user, isAuthenticated: true }),
@@ -91,6 +100,11 @@ export const useUserStore = create<UserState>()(
                     isTrialActive: true,
                 });
             },
+
+            setLastMessage: (id, type) => set({
+                lastMessageId: id,
+                lastMessageType: type,
+            }),
         }),
         {
             name: 'mindping-user-storage',
