@@ -119,9 +119,9 @@ function getNextTriggerDate(slot: string): Date {
     switch (slot) {
         case 'morning': // 06-09
             startHour = 6; endHour = 9; break;
-        case 'am':      // 09-12
+        case 'forenoon':  // 09-12
             startHour = 9; endHour = 12; break;
-        case 'pm':      // 12-18
+        case 'afternoon': // 12-18
             startHour = 12; endHour = 18; break;
         case 'evening': // 18-22
             startHour = 18; endHour = 22; break;

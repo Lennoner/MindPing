@@ -10,7 +10,6 @@ export default function SettingsScreen() {
     const { user, logout, isTrialActive, subscriptionPlan } = useUserStore();
 
     const menuItems = [
-        { icon: '⏰', label: '시간대 설정', path: '/notification-settings' },
         { icon: '🔔', label: '알림 설정', path: '/notification-settings' },
         { icon: '💎', label: '구독 관리', path: '/subscription' },
         { icon: '🛡️', label: '개인정보 처리방침', path: null },

@@ -4,8 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants';
 import { SAMPLE_MESSAGES } from '../../src/constants/data';
+import { useUserStore } from '../../src/stores/userStore';
 
 export default function HomeScreen() {
+    const { user } = useUserStore();
     const today = new Date();
     const month = today.getMonth() + 1;
     const day = today.getDate();
@@ -16,7 +18,7 @@ export default function HomeScreen() {
     const greeting = hour < 12 ? '좋은 아침이에요' : hour < 18 ? '좋은 오후예요' : '편안한 밤 되세요';
 
     const todayMessage = SAMPLE_MESSAGES[0];
-    const userName = '이온유';
+    const userName = user?.nickname || '사용자';
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>

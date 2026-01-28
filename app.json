@@ -23,7 +23,12 @@
         "backgroundColor": "#6366F1"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.mindping.app"
+      "package": "com.mindping.app",
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -41,9 +46,11 @@
       ]
     ],
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "your-project-id"
+        "projectId": "74d90b37-c765-49ea-8c4b-f5a806f22a2d"
       }
-    }
+    },
+    "owner": "lennoner"
   }
 }
