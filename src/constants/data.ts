@@ -1,4 +1,7 @@
 
+// 구독 플랜 타입
+export type PlanType = 'free' | 'monthly' | 'yearly' | 'student';
+
 // 시간대 설정
 export type TimeSlot = 'morning' | 'forenoon' | 'afternoon' | 'evening' | 'night';
 
