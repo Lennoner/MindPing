@@ -3,15 +3,29 @@ import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants';
+import { useUserStore } from '../../src/stores/userStore';
 
 export default function SettingsScreen() {
     const router = useRouter();
+    const { user, logout, isTrialActive, subscriptionPlan } = useUserStore();
 
     const menuItems = [
-        { icon: '🔔', label: '알림 설정', path: '/notifications' },
-        { icon: '👤', label: '계정 관리', path: '/account' },
-        { icon: '🛡️', label: '개인정보 처리방침', path: '/privacy' },
+        { icon: '⏰', label: '시간대 설정', path: '/notification-settings' },
+        { icon: '🔔', label: '알림 설정', path: '/notification-settings' },
+        { icon: '💎', label: '구독 관리', path: '/subscription' },
+        { icon: '🛡️', label: '개인정보 처리방침', path: null },
     ];
+
+    const handleMenuPress = (path: string | null) => {
+        if (path) {
+            router.push(path as any);
+        }
+    };
+
+    const handleLogout = () => {
+        logout();
+        router.replace('/onboarding');
+    };
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
@@ -23,12 +37,14 @@ export default function SettingsScreen() {
                 {/* 프로필 카드 */}
                 <View style={styles.profileCard}>
                     <View style={styles.profileIcon}>
-                        <Text style={styles.profileIconText}>이</Text>
+                        <Text style={styles.profileIconText}>{user?.nickname?.charAt(0) || '사'}</Text>
                     </View>
                     <View style={styles.profileInfo}>
-                        <Text style={styles.profileName}>이온유</Text>
+                        <Text style={styles.profileName}>{user?.nickname || '사용자'}</Text>
                         <View style={styles.badge}>
-                            <Text style={styles.badgeText}>MEMBER</Text>
+                            <Text style={styles.badgeText}>
+                                {isTrialActive ? 'TRIAL' : subscriptionPlan === 'free' ? 'FREE' : 'MEMBER'}
+                            </Text>
                         </View>
                     </View>
                 </View>
@@ -44,6 +60,7 @@ export default function SettingsScreen() {
                                 styles.menuItem,
                                 index !== menuItems.length - 1 && styles.menuItemBorder
                             ]}
+                            onPress={() => handleMenuPress(item.path)}
                         >
                             <View style={styles.menuLeft}>
                                 <View style={styles.menuIconBox}>
@@ -57,7 +74,7 @@ export default function SettingsScreen() {
                 </View>
 
                 {/* 로그아웃 버튼 */}
-                <TouchableOpacity style={styles.logoutBtn}>
+                <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
                     <Text style={styles.logoutText}>↪  로그아웃</Text>
                 </TouchableOpacity>
 
