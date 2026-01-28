@@ -1,7 +1,3 @@
-
-// 구독 플랜 타입
-export type PlanType = 'free' | 'monthly' | 'yearly' | 'student';
-
 // 시간대 설정
 export type TimeSlot = 'morning' | 'forenoon' | 'afternoon' | 'evening' | 'night';
 
@@ -165,8 +161,8 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
     },
     {
         id: 3,
-        title: '7일 무료로 시작하세요',
-        description: '카드 등록 없이 바로 시작할 수 있어요.\n마음에 드시면 그때 결정하세요.',
+        title: '완전 무료, 안심하세요',
+        description: '회원가입도, 결제도 필요 없어요.\n그냥 편안하게 위로만 받으세요.',
     },
 ];
 

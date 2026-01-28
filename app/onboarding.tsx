@@ -25,7 +25,7 @@ export default function OnboardingScreen() {
 
     const handleStart = () => {
         setOnboarded(true);
-        router.replace('/(auth)/login');
+        router.replace('/(tabs)');
     };
 
     const handleSkip = () => {

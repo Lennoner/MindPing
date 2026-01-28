@@ -1,4 +1,4 @@
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -7,23 +7,43 @@ import { useUserStore } from '../../src/stores/userStore';
 
 export default function SettingsScreen() {
     const router = useRouter();
-    const { user, logout, isTrialActive, subscriptionPlan } = useUserStore();
+    const { user, resetUser } = useUserStore();
 
     const menuItems = [
         { icon: '🔔', label: '알림 설정', path: '/notification-settings' },
-        { icon: '💎', label: '구독 관리', path: '/subscription' },
-        { icon: '🛡️', label: '개인정보 처리방침', path: null },
+        { icon: '🛡️', label: '개인정보 처리방침', path: 'https://Lennoner.github.io/MindPing/public/privacy-policy.html', isExternal: true },
     ];
 
-    const handleMenuPress = (path: string | null) => {
-        if (path) {
-            router.push(path as any);
+    const handleMenuPress = (item: typeof menuItems[0]) => {
+        if (item.isExternal) {
+            // 외부 링크는 추후 웹뷰나 브라우저 열기로 처리 가능 (현재는 일단 패스하거나 구현)
+            // 여기서는 간단히 router.push로 웹뷰 페이지를 열거나 해야 하지만, 
+            // 일단 로컬 파일이므로 별도 처리가 필요할 수 있음. 
+            // 편의상 알림 설정 외에는 기능이 없으므로 일단 둠.
+            // 실제 구현에서는 Linking.openURL 사용 추천.
+            const { Linking } = require('react-native');
+            Linking.openURL(item.path);
+        } else if (item.path) {
+            router.push(item.path as any);
         }
     };
 
-    const handleLogout = () => {
-        logout();
-        router.replace('/onboarding');
+    const handleReset = () => {
+        Alert.alert(
+            "데이터 초기화",
+            "모든 기록이 삭제되고 처음 상태로 돌아갑니다. 계속하시겠습니까?",
+            [
+                { text: "취소", style: "cancel" },
+                {
+                    text: "초기화",
+                    style: "destructive",
+                    onPress: () => {
+                        resetUser();
+                        router.replace('/onboarding');
+                    }
+                }
+            ]
+        );
     };
 
     return (
@@ -36,15 +56,11 @@ export default function SettingsScreen() {
                 {/* 프로필 카드 */}
                 <View style={styles.profileCard}>
                     <View style={styles.profileIcon}>
-                        <Text style={styles.profileIconText}>{user?.nickname?.charAt(0) || '사'}</Text>
+                        <Text style={styles.profileIconText}>{user?.nickname?.charAt(0) || '나'}</Text>
                     </View>
                     <View style={styles.profileInfo}>
                         <Text style={styles.profileName}>{user?.nickname || '사용자'}</Text>
-                        <View style={styles.badge}>
-                            <Text style={styles.badgeText}>
-                                {isTrialActive ? 'TRIAL' : subscriptionPlan === 'free' ? 'FREE' : 'MEMBER'}
-                            </Text>
-                        </View>
+                        <Text style={styles.profileDesc}>오늘도 평온한 하루 되세요 🌿</Text>
                     </View>
                 </View>
 
@@ -59,7 +75,7 @@ export default function SettingsScreen() {
                                 styles.menuItem,
                                 index !== menuItems.length - 1 && styles.menuItemBorder
                             ]}
-                            onPress={() => handleMenuPress(item.path)}
+                            onPress={() => handleMenuPress(item)}
                         >
                             <View style={styles.menuLeft}>
                                 <View style={styles.menuIconBox}>
@@ -72,12 +88,15 @@ export default function SettingsScreen() {
                     ))}
                 </View>
 
-                {/* 로그아웃 버튼 */}
-                <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-                    <Text style={styles.logoutText}>↪  로그아웃</Text>
+                {/* 초기화 버튼 */}
+                <TouchableOpacity style={styles.resetBtn} onPress={handleReset}>
+                    <Text style={styles.resetText}>🗑️ 데이터 초기화</Text>
                 </TouchableOpacity>
 
-                <Text style={styles.version}>MindPing v2.0</Text>
+                <View style={styles.footer}>
+                    <Text style={styles.version}>MindPing v2.0</Text>
+                    <Text style={styles.copyright}>Simple & Private Healing App</Text>
+                </View>
             </View>
         </SafeAreaView>
     );
@@ -140,17 +159,9 @@ const styles = StyleSheet.create({
         color: Colors.text,
         marginBottom: 4,
     },
-    badge: {
-        backgroundColor: '#FFD700', // Gold color for MEMBER badge
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-        alignSelf: 'flex-start',
-    },
-    badgeText: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: Colors.text,
+    profileDesc: {
+        fontSize: FontSize.sm,
+        color: Colors.textSecondary,
     },
     sectionTitle: {
         fontSize: FontSize.sm,
@@ -204,21 +215,29 @@ const styles = StyleSheet.create({
         color: Colors.textTertiary,
         fontWeight: '300',
     },
-    logoutBtn: {
+    resetBtn: {
         backgroundColor: '#FFF0F0',
         borderRadius: BorderRadius.lg,
         padding: Spacing.md,
         alignItems: 'center',
         marginBottom: Spacing.xl,
     },
-    logoutText: {
+    resetText: {
         color: Colors.error,
         fontWeight: '600',
         fontSize: FontSize.md,
     },
+    footer: {
+        alignItems: 'center',
+    },
     version: {
-        textAlign: 'center',
         fontSize: FontSize.xs,
         color: Colors.textTertiary,
+        marginBottom: 4,
+    },
+    copyright: {
+        fontSize: 10,
+        color: Colors.textTertiary,
+        opacity: 0.7,
     },
 });
