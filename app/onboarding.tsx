@@ -1,16 +1,18 @@
 import { useState, useRef } from 'react';
-import { View, StyleSheet, Dimensions, FlatList, Animated } from 'react-native';
+import { View, StyleSheet, Dimensions, FlatList, Animated, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useUserStore } from '../src/stores';
-import { Colors, FontSize, Spacing, ONBOARDING_SLIDES } from '../src/constants';
+import { Colors, FontSize, Spacing, BorderRadius, ONBOARDING_SLIDES } from '../src/constants';
 
 const { width } = Dimensions.get('window');
 
 export default function OnboardingScreen() {
     const router = useRouter();
-    const { setOnboarded } = useUserStore();
+    const { setOnboarded, setUser } = useUserStore();
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [showNicknameInput, setShowNicknameInput] = useState(false);
+    const [nickname, setNickname] = useState('');
     const flatListRef = useRef<FlatList>(null);
     const scrollX = useRef(new Animated.Value(0)).current;
 
@@ -19,17 +21,23 @@ export default function OnboardingScreen() {
             flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
             setCurrentIndex(currentIndex + 1);
         } else {
-            handleStart();
+            // 마지막 슬라이드 후 닉네임 입력 화면 표시
+            setShowNicknameInput(true);
         }
     };
 
     const handleStart = () => {
+        // 닉네임 저장 (입력하지 않으면 기본값)
+        const finalNickname = nickname.trim() || '사용자';
+        setUser({ nickname: finalNickname, createdAt: new Date() });
         setOnboarded(true);
         router.replace('/(tabs)');
     };
 
     const handleSkip = () => {
-        handleStart();
+        setUser({ nickname: '사용자', createdAt: new Date() });
+        setOnboarded(true);
+        router.replace('/(tabs)');
     };
 
     const renderSlide = ({ item, index }: { item: typeof ONBOARDING_SLIDES[0]; index: number }) => (
@@ -68,6 +76,51 @@ export default function OnboardingScreen() {
             })}
         </View>
     );
+
+    // 닉네임 입력 화면
+    if (showNicknameInput) {
+        return (
+            <KeyboardAvoidingView
+                style={styles.container}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
+                <View style={styles.nicknameContainer}>
+                    <View style={styles.nicknameHeader}>
+                        <Text style={styles.nicknameEmoji}>👋</Text>
+                        <Text style={styles.nicknameTitle}>반가워요!</Text>
+                        <Text style={styles.nicknameSubtitle}>
+                            뭐라고 불러드릴까요?
+                        </Text>
+                    </View>
+
+                    <TextInput
+                        style={styles.nicknameInput}
+                        placeholder="닉네임을 입력해주세요"
+                        placeholderTextColor={Colors.textTertiary}
+                        value={nickname}
+                        onChangeText={setNickname}
+                        maxLength={10}
+                        autoFocus
+                    />
+                    <Text style={styles.nicknameHint}>
+                        {nickname.length}/10 (나중에 변경할 수 있어요)
+                    </Text>
+
+                    <View style={styles.buttonContainer}>
+                        <Button
+                            mode="contained"
+                            onPress={handleStart}
+                            style={styles.button}
+                            contentStyle={styles.buttonContent}
+                            labelStyle={styles.buttonLabel}
+                        >
+                            시작하기
+                        </Button>
+                    </View>
+                </View>
+            </KeyboardAvoidingView>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -109,7 +162,7 @@ export default function OnboardingScreen() {
                     contentStyle={styles.buttonContent}
                     labelStyle={styles.buttonLabel}
                 >
-                    {currentIndex === ONBOARDING_SLIDES.length - 1 ? '시작하기' : '다음'}
+                    {currentIndex === ONBOARDING_SLIDES.length - 1 ? '다음' : '다음'}
                 </Button>
             </View>
         </View>
@@ -183,5 +236,47 @@ const styles = StyleSheet.create({
     buttonLabel: {
         fontSize: FontSize.lg,
         fontWeight: '600',
+    },
+    // 닉네임 입력 화면 스타일
+    nicknameContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        paddingHorizontal: Spacing.xl,
+    },
+    nicknameHeader: {
+        alignItems: 'center',
+        marginBottom: Spacing.xxl,
+    },
+    nicknameEmoji: {
+        fontSize: 64,
+        marginBottom: Spacing.md,
+    },
+    nicknameTitle: {
+        fontSize: FontSize.xxl,
+        fontWeight: 'bold',
+        color: Colors.text,
+        marginBottom: Spacing.sm,
+    },
+    nicknameSubtitle: {
+        fontSize: FontSize.lg,
+        color: Colors.textSecondary,
+        textAlign: 'center',
+    },
+    nicknameInput: {
+        backgroundColor: Colors.surface,
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.lg,
+        fontSize: FontSize.lg,
+        color: Colors.text,
+        textAlign: 'center',
+        borderWidth: 2,
+        borderColor: Colors.primary,
+    },
+    nicknameHint: {
+        fontSize: FontSize.sm,
+        color: Colors.textTertiary,
+        textAlign: 'center',
+        marginTop: Spacing.sm,
+        marginBottom: Spacing.xl,
     },
 });

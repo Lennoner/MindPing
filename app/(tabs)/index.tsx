@@ -1,12 +1,30 @@
+import { useMemo } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants';
 import { SAMPLE_MESSAGES } from '../../src/constants/data';
 import { useUserStore } from '../../src/stores/userStore';
 
+// 날짜 기반 시드로 같은 날에는 같은 메시지 표시
+const getDailyMessageIndex = (date: Date): number => {
+    const seed = date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+    return seed % SAMPLE_MESSAGES.length;
+};
+
+const getMessageTypeLabel = (type: string): string => {
+    switch (type) {
+        case 'wisdom': return '지혜';
+        case 'comfort': return '위로';
+        case 'question': return '질문';
+        default: return '메시지';
+    }
+};
+
 export default function HomeScreen() {
+    const router = useRouter();
     const { user } = useUserStore();
     const today = new Date();
     const month = today.getMonth() + 1;
@@ -17,7 +35,12 @@ export default function HomeScreen() {
     const hour = today.getHours();
     const greeting = hour < 12 ? '좋은 아침이에요' : hour < 18 ? '좋은 오후예요' : '편안한 밤 되세요';
 
-    const todayMessage = SAMPLE_MESSAGES[0];
+    // 날짜 기반 랜덤 메시지 (같은 날에는 같은 메시지)
+    const todayMessage = useMemo(() => {
+        const index = getDailyMessageIndex(today);
+        return SAMPLE_MESSAGES[index];
+    }, [today.toDateString()]);
+
     const userName = user?.nickname || '사용자';
 
     return (
@@ -32,7 +55,10 @@ export default function HomeScreen() {
                         </View>
                         <Text style={styles.userName}>{userName}님</Text>
                     </View>
-                    <TouchableOpacity style={styles.notificationBtn}>
+                    <TouchableOpacity
+                        style={styles.notificationBtn}
+                        onPress={() => router.push('/notification-settings')}
+                    >
                         <Text style={styles.notificationIcon}>🔔</Text>
                     </TouchableOpacity>
                 </View>
@@ -43,12 +69,12 @@ export default function HomeScreen() {
                         colors={['#F8F7FF', '#F0EEFF']}
                         style={styles.cardGradient}
                     >
-                        {/* 질문 태그 */}
+                        {/* 메시지 타입 태그 */}
                         <View style={styles.tagRow}>
                             <View style={styles.tag}>
-                                <Text style={styles.tagText}>질문</Text>
+                                <Text style={styles.tagText}>{getMessageTypeLabel(todayMessage.type)}</Text>
                             </View>
-                            <Text style={styles.sparkle}>✨</Text>
+                            <Text style={styles.sparkle}>{todayMessage.emoji}</Text>
                         </View>
 
                         {/* 메시지 내용 */}
@@ -60,13 +86,16 @@ export default function HomeScreen() {
                                 <Text style={styles.shareIcon}>↗️</Text>
                                 <Text style={styles.shareText}>공유하기</Text>
                             </TouchableOpacity>
-                            <Text style={styles.pingNumber}>PING #001</Text>
+                            <Text style={styles.pingNumber}>PING #{todayMessage.id.padStart(3, '0')}</Text>
                         </View>
                     </LinearGradient>
                 </View>
 
-                {/* 오늘의 미션 */}
-                <TouchableOpacity style={styles.missionCard}>
+                {/* 오늘의 미션 - 일기 탭으로 이동 */}
+                <TouchableOpacity
+                    style={styles.missionCard}
+                    onPress={() => router.push('/(tabs)/diary')}
+                >
                     <View style={styles.missionContent}>
                         <Text style={styles.missionLabel}>오늘의 미션</Text>
                         <Text style={styles.missionTitle}>오늘의 감정 기록하기</Text>
