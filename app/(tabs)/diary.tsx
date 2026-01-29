@@ -1,261 +1,107 @@
 import { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput } from 'react-native';
-import { Text, Button, IconButton } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { Text, Button } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDiaryStore } from '../../src/stores';
-import { Colors, FontSize, Spacing, BorderRadius, EMOTIONS, EmotionType } from '../../src/constants';
+import { Colors, FontSize, Spacing, BorderRadius } from '../../src/constants';
 
 export default function DiaryScreen() {
     const { entries, addEntry, getEntryByDate } = useDiaryStore();
-    const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
-    const [showModal, setShowModal] = useState(false);
-    const [selectedEmotion, setSelectedEmotion] = useState<EmotionType | null>(null);
-    const [memo, setMemo] = useState('');
-    const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [content, setContent] = useState('');
 
-    const today = new Date().toISOString().split('T')[0];
-    const todayEntry = getEntryByDate(today);
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const todayEntry = getEntryByDate(todayStr);
+
+    const formatDate = (dateStr: string) => {
+        const [year, month, day] = dateStr.split('-');
+        return `${parseInt(month)}월 ${parseInt(day)}일`;
+    };
 
     const handleSave = () => {
-        if (selectedEmotion) {
-            addEntry(selectedEmotion, memo.trim() || undefined);
-            setShowModal(false);
-            setSelectedEmotion(null);
-            setMemo('');
+        if (content.trim()) {
+            addEntry(content.trim());
+            setContent('');
         }
     };
 
-    const handleOpenModal = (emotion?: EmotionType) => {
-        if (emotion) {
-            setSelectedEmotion(emotion);
-        }
-        setShowModal(true);
-    };
-
-    // 달력 생성
-    const generateCalendar = () => {
-        const year = currentMonth.getFullYear();
-        const month = currentMonth.getMonth();
-        const firstDay = new Date(year, month, 1).getDay();
-        const lastDate = new Date(year, month + 1, 0).getDate();
-
-        const days = [];
-
-        // 빈 칸
-        for (let i = 0; i < firstDay; i++) {
-            days.push({ date: null, emotion: null });
-        }
-
-        // 날짜
-        for (let i = 1; i <= lastDate; i++) {
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            const entry = entries.find(e => e.date === dateStr);
-            days.push({
-                date: i,
-                dateStr,
-                emotion: entry?.emotion || null,
-            });
-        }
-
-        return days;
-    };
-
-    const changeMonth = (delta: number) => {
-        setCurrentMonth(prev => {
-            const newDate = new Date(prev);
-            newDate.setMonth(prev.getMonth() + delta);
-            return newDate;
-        });
-    };
-
-    const getEmotionEmoji = (type: EmotionType | null) => {
-        if (!type) return null;
-        return EMOTIONS.find(e => e.type === type)?.emoji;
-    };
+    // 오늘 이미 기록했으면 수정 모드
+    const isEditMode = !!todayEntry;
 
     return (
-        <View style={styles.container}>
-            <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-                {/* 헤더 */}
-                <View style={styles.header}>
-                    <View>
-                        <Text style={styles.title}>감정 일기 📝</Text>
-                        <Text style={styles.subtitle}>오늘 하루를 기록해보세요</Text>
-                    </View>
-                    <View style={styles.viewToggle}>
-                        <IconButton
-                            icon="calendar"
-                            selected={viewMode === 'calendar'}
-                            onPress={() => setViewMode('calendar')}
-                            iconColor={viewMode === 'calendar' ? Colors.primary : Colors.textTertiary}
-                        />
-                        <IconButton
-                            icon="format-list-bulleted"
-                            selected={viewMode === 'list'}
-                            onPress={() => setViewMode('list')}
-                            iconColor={viewMode === 'list' ? Colors.primary : Colors.textTertiary}
-                        />
-                    </View>
-                </View>
-
-                {/* 오늘 감정 기록 */}
-                {!todayEntry ? (
-                    <View style={styles.todaySection}>
-                        <Text style={styles.sectionTitle}>오늘의 기분은?</Text>
-                        <View style={styles.emotionSelector}>
-                            {EMOTIONS.map((emotion) => (
-                                <TouchableOpacity
-                                    key={emotion.type}
-                                    style={styles.emotionOption}
-                                    onPress={() => handleOpenModal(emotion.type)}
-                                >
-                                    <Text style={styles.emotionEmoji}>{emotion.emoji}</Text>
-                                    <Text style={styles.emotionLabel}>{emotion.label}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-                ) : (
-                    <View style={styles.todayRecorded}>
-                        <Text style={styles.recordedEmoji}>{getEmotionEmoji(todayEntry.emotion)}</Text>
-                        <View style={styles.recordedInfo}>
-                            <Text style={styles.recordedTitle}>오늘 기록 완료!</Text>
-                            {todayEntry.memo && (
-                                <Text style={styles.recordedMemo} numberOfLines={2}>
-                                    {todayEntry.memo}
-                                </Text>
-                            )}
-                        </View>
-                        <TouchableOpacity onPress={() => handleOpenModal(todayEntry.emotion)}>
-                            <Text style={styles.editButton}>수정</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
-
-                {/* 달력 또는 리스트 */}
-                {viewMode === 'calendar' ? (
-                    <View style={styles.calendarSection}>
-                        <View style={styles.calendarHeader}>
-                            <IconButton icon="chevron-left" onPress={() => changeMonth(-1)} />
-                            <Text style={styles.calendarTitle}>
-                                {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
-                            </Text>
-                            <IconButton icon="chevron-right" onPress={() => changeMonth(1)} />
-                        </View>
-
-                        <View style={styles.weekDays}>
-                            {['일', '월', '화', '수', '목', '금', '토'].map(day => (
-                                <Text key={day} style={styles.weekDay}>{day}</Text>
-                            ))}
-                        </View>
-
-                        <View style={styles.calendarGrid}>
-                            {generateCalendar().map((day, index) => (
-                                <TouchableOpacity
-                                    key={index}
-                                    style={styles.calendarDay}
-                                    onPress={() => {
-                                        // TODO: 과거 날짜 클릭 시 상세 보기 또는 수정
-                                    }}
-                                >
-                                    {day.date && (
-                                        <>
-                                            <Text style={[
-                                                styles.dayNumber,
-                                                day.dateStr === today && styles.dayNumberToday
-                                            ]}>
-                                                {day.date}
-                                            </Text>
-                                            {day.emotion && (
-                                                <Text style={styles.dayEmoji}>{getEmotionEmoji(day.emotion)}</Text>
-                                            )}
-                                        </>
-                                    )}
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-                ) : (
-                    <View style={styles.listSection}>
-                        {[...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((entry) => (
-                            <View key={entry.id} style={styles.listItem}>
-                                <Text style={styles.listDate}>{entry.date}</Text>
-                                <View style={styles.listContent}>
-                                    <Text style={styles.listEmoji}>{getEmotionEmoji(entry.emotion)}</Text>
-                                    {entry.memo && (
-                                        <Text style={styles.listMemo} numberOfLines={2}>{entry.memo}</Text>
-                                    )}
-                                </View>
-                            </View>
-                        ))}
-                        {entries.length === 0 && (
-                            <Text style={styles.emptyList}>아직 기록된 일기가 없어요.</Text>
-                        )}
-                    </View>
-                )}
-            </ScrollView>
-
-            {/* 감정 기록 모달 */}
-            <Modal
-                visible={showModal}
-                animationType="slide"
-                transparent
-                onRequestClose={() => setShowModal(false)}
+        <SafeAreaView style={styles.container} edges={['top']}>
+            <KeyboardAvoidingView
+                style={styles.keyboardView}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>오늘의 감정 기록</Text>
-
-                        <View style={styles.emotionSelector}>
-                            {EMOTIONS.map((emotion) => (
-                                <TouchableOpacity
-                                    key={emotion.type}
-                                    style={[
-                                        styles.emotionOption,
-                                        selectedEmotion === emotion.type && styles.emotionOptionSelected
-                                    ]}
-                                    onPress={() => setSelectedEmotion(emotion.type)}
-                                >
-                                    <Text style={styles.emotionEmoji}>{emotion.emoji}</Text>
-                                    <Text style={[
-                                        styles.emotionLabel,
-                                        selectedEmotion === emotion.type && styles.emotionLabelSelected
-                                    ]}>{emotion.label}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-
-                        <TextInput
-                            style={styles.memoInput}
-                            placeholder="오늘 하루는 어땠나요? (선택)"
-                            value={memo}
-                            onChangeText={setMemo}
-                            multiline
-                            maxLength={200}
-                            placeholderTextColor={Colors.textTertiary}
-                        />
-                        <Text style={styles.charCount}>{memo.length}/200</Text>
-
-                        <View style={styles.modalButtons}>
-                            <Button
-                                mode="outlined"
-                                onPress={() => setShowModal(false)}
-                                style={styles.modalButton}
-                            >
-                                취소
-                            </Button>
-                            <Button
-                                mode="contained"
-                                onPress={handleSave}
-                                disabled={!selectedEmotion}
-                                style={styles.modalButton}
-                            >
-                                저장
-                            </Button>
-                        </View>
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.content}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {/* 헤더 */}
+                    <View style={styles.header}>
+                        <Text style={styles.title}>오늘의 기록</Text>
+                        <Text style={styles.date}>{formatDate(todayStr)}</Text>
                     </View>
-                </View>
-            </Modal>
-        </View>
+
+                    {/* 오늘 기록 완료 상태 */}
+                    {todayEntry && (
+                        <View style={styles.todayCard}>
+                            <Text style={styles.todayLabel}>오늘 작성한 기록</Text>
+                            <Text style={styles.todayContent}>{todayEntry.content}</Text>
+                        </View>
+                    )}
+
+                    {/* 입력 영역 */}
+                    <View style={styles.inputSection}>
+                        <Text style={styles.inputLabel}>
+                            {isEditMode ? '다시 작성하기' : '오늘 하루는 어땠나요?'}
+                        </Text>
+                        <TextInput
+                            style={styles.textInput}
+                            placeholder="자유롭게 적어보세요..."
+                            value={content}
+                            onChangeText={setContent}
+                            multiline
+                            maxLength={500}
+                            placeholderTextColor={Colors.textTertiary}
+                            textAlignVertical="top"
+                        />
+                        <Text style={styles.charCount}>{content.length}/500</Text>
+
+                        <Button
+                            mode="contained"
+                            onPress={handleSave}
+                            disabled={!content.trim()}
+                            style={styles.saveBtn}
+                            contentStyle={styles.saveBtnContent}
+                        >
+                            {isEditMode ? '수정하기' : '저장하기'}
+                        </Button>
+                    </View>
+
+                    {/* 이전 기록들 */}
+                    {entries.length > 0 && (
+                        <View style={styles.historySection}>
+                            <Text style={styles.historyTitle}>지난 기록</Text>
+                            {[...entries]
+                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                .filter(e => e.date !== todayStr)
+                                .slice(0, 10)
+                                .map((entry) => (
+                                    <View key={entry.id} style={styles.historyItem}>
+                                        <Text style={styles.historyDate}>{formatDate(entry.date)}</Text>
+                                        <Text style={styles.historyContent} numberOfLines={2}>
+                                            {entry.content}
+                                        </Text>
+                                    </View>
+                                ))}
+                        </View>
+                    )}
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 }
 
@@ -264,175 +110,67 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Colors.background,
     },
+    keyboardView: {
+        flex: 1,
+    },
     scrollView: {
         flex: 1,
     },
     content: {
         padding: Spacing.lg,
-        paddingTop: Spacing.xxl + Spacing.lg,
     },
     header: {
         marginBottom: Spacing.lg,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    viewToggle: {
-        flexDirection: 'row',
     },
     title: {
         fontSize: FontSize.xxl,
         fontWeight: 'bold',
         color: Colors.text,
     },
-    subtitle: {
+    date: {
         fontSize: FontSize.md,
         color: Colors.textSecondary,
         marginTop: Spacing.xs,
     },
-    todaySection: {
+    todayCard: {
+        backgroundColor: Colors.primaryLight + '20',
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.lg,
+        marginBottom: Spacing.lg,
+        borderLeftWidth: 4,
+        borderLeftColor: Colors.primary,
+    },
+    todayLabel: {
+        fontSize: FontSize.sm,
+        color: Colors.primary,
+        fontWeight: '600',
+        marginBottom: Spacing.sm,
+    },
+    todayContent: {
+        fontSize: FontSize.md,
+        color: Colors.text,
+        lineHeight: 22,
+    },
+    inputSection: {
         backgroundColor: Colors.surface,
         borderRadius: BorderRadius.lg,
         padding: Spacing.lg,
         marginBottom: Spacing.lg,
     },
-    sectionTitle: {
+    inputLabel: {
         fontSize: FontSize.md,
         fontWeight: '600',
         color: Colors.text,
         marginBottom: Spacing.md,
     },
-    emotionSelector: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    emotionOption: {
-        alignItems: 'center',
-        padding: Spacing.sm,
-        borderRadius: BorderRadius.md,
-    },
-    emotionOptionSelected: {
-        backgroundColor: Colors.primaryLight + '30',
-    },
-    emotionEmoji: {
-        fontSize: 32,
-        marginBottom: 4,
-    },
-    emotionLabel: {
-        fontSize: FontSize.xs,
-        color: Colors.textSecondary,
-    },
-    emotionLabelSelected: {
-        color: Colors.primary,
-        fontWeight: '600',
-    },
-    todayRecorded: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.surface,
-        borderRadius: BorderRadius.lg,
-        padding: Spacing.lg,
-        marginBottom: Spacing.lg,
-    },
-    recordedEmoji: {
-        fontSize: 40,
-        marginRight: Spacing.md,
-    },
-    recordedInfo: {
-        flex: 1,
-    },
-    recordedTitle: {
-        fontSize: FontSize.md,
-        fontWeight: '600',
-        color: Colors.text,
-    },
-    recordedMemo: {
-        fontSize: FontSize.sm,
-        color: Colors.textSecondary,
-        marginTop: 4,
-    },
-    editButton: {
-        fontSize: FontSize.sm,
-        color: Colors.primary,
-        fontWeight: '600',
-    },
-    calendarSection: {
-        backgroundColor: Colors.surface,
-        borderRadius: BorderRadius.lg,
-        padding: Spacing.md,
-    },
-    calendarHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    calendarTitle: {
-        fontSize: FontSize.lg,
-        fontWeight: '600',
-        color: Colors.text,
-    },
-    weekDays: {
-        flexDirection: 'row',
-        marginTop: Spacing.sm,
-    },
-    weekDay: {
-        flex: 1,
-        textAlign: 'center',
-        fontSize: FontSize.xs,
-        color: Colors.textSecondary,
-        fontWeight: '600',
-    },
-    calendarGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        marginTop: Spacing.sm,
-    },
-    calendarDay: {
-        width: '14.28%',
-        aspectRatio: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    dayNumber: {
-        fontSize: FontSize.sm,
-        color: Colors.text,
-    },
-    dayNumberToday: {
-        color: Colors.primary,
-        fontWeight: 'bold',
-    },
-    dayEmoji: {
-        fontSize: 16,
-        marginTop: 2,
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        backgroundColor: Colors.surface,
-        borderTopLeftRadius: BorderRadius.xl,
-        borderTopRightRadius: BorderRadius.xl,
-        padding: Spacing.lg,
-        paddingBottom: Spacing.xxl,
-    },
-    modalTitle: {
-        fontSize: FontSize.xl,
-        fontWeight: 'bold',
-        color: Colors.text,
-        textAlign: 'center',
-        marginBottom: Spacing.lg,
-    },
-    memoInput: {
+    textInput: {
         backgroundColor: Colors.surfaceVariant,
         borderRadius: BorderRadius.md,
         padding: Spacing.md,
-        height: 100,
-        textAlignVertical: 'top',
+        minHeight: 120,
         fontSize: FontSize.md,
         color: Colors.text,
-        marginTop: Spacing.lg,
+        lineHeight: 22,
     },
     charCount: {
         fontSize: FontSize.xs,
@@ -440,48 +178,36 @@ const styles = StyleSheet.create({
         textAlign: 'right',
         marginTop: Spacing.xs,
     },
-    modalButtons: {
-        flexDirection: 'row',
-        gap: Spacing.md,
-        marginTop: Spacing.lg,
+    saveBtn: {
+        marginTop: Spacing.md,
+        backgroundColor: Colors.primary,
     },
-    modalButton: {
-        flex: 1,
+    saveBtnContent: {
+        paddingVertical: Spacing.xs,
     },
-    listSection: {
-        // marginTop: Spacing.md,
+    historySection: {
+        marginTop: Spacing.md,
     },
-    listItem: {
-        backgroundColor: Colors.surface,
-        borderRadius: BorderRadius.lg,
-        padding: Spacing.md,
+    historyTitle: {
+        fontSize: FontSize.lg,
+        fontWeight: '600',
+        color: Colors.text,
         marginBottom: Spacing.md,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
     },
-    listDate: {
+    historyItem: {
+        backgroundColor: Colors.surface,
+        borderRadius: BorderRadius.md,
+        padding: Spacing.md,
+        marginBottom: Spacing.sm,
+    },
+    historyDate: {
         fontSize: FontSize.sm,
         color: Colors.textSecondary,
-        width: 100,
+        marginBottom: Spacing.xs,
     },
-    listContent: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    listEmoji: {
-        fontSize: 24,
-        marginRight: Spacing.md,
-    },
-    listMemo: {
-        flex: 1,
-        fontSize: FontSize.sm,
+    historyContent: {
+        fontSize: FontSize.md,
         color: Colors.text,
-    },
-    emptyList: {
-        textAlign: 'center',
-        color: Colors.textTertiary,
-        marginTop: Spacing.xl,
+        lineHeight: 20,
     },
 });

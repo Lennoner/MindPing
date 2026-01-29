@@ -165,20 +165,3 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
         description: '회원가입도, 결제도 필요 없어요.\n그냥 편안하게 위로만 받으세요.',
     },
 ];
-
-// 감정 데이터
-export type EmotionType = 'good' | 'soso' | 'sad' | 'anxious' | 'angry';
-
-export interface EmotionOption {
-    type: EmotionType;
-    label: string;
-    emoji: string;
-}
-
-export const EMOTIONS: EmotionOption[] = [
-    { type: 'good', label: '좋음', emoji: '😊' },
-    { type: 'soso', label: '그저그럼', emoji: '😐' },
-    { type: 'sad', label: '슬픔', emoji: '😢' },
-    { type: 'anxious', label: '불안', emoji: '😰' },
-    { type: 'angry', label: '화남', emoji: '😡' },
-];
