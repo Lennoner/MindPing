@@ -4,6 +4,7 @@ import { Text, Button } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useUserStore } from '../src/stores';
 import { Colors, FontSize, Spacing, BorderRadius, ONBOARDING_SLIDES } from '../src/constants';
+import { scheduleRandomDailyMessage } from '../src/utils/notifications';
 
 const { width } = Dimensions.get('window');
 
@@ -26,17 +27,21 @@ export default function OnboardingScreen() {
         }
     };
 
-    const handleStart = () => {
+    const handleStart = async () => {
         // 닉네임 저장 (입력하지 않으면 기본값)
         const finalNickname = nickname.trim() || '사용자';
         setUser({ nickname: finalNickname, createdAt: new Date() });
         setOnboarded(true);
+        // 기본 시간대로 알림 자동 스케줄링
+        await scheduleRandomDailyMessage(['forenoon', 'afternoon', 'evening']);
         router.replace('/(tabs)');
     };
 
-    const handleSkip = () => {
+    const handleSkip = async () => {
         setUser({ nickname: '사용자', createdAt: new Date() });
         setOnboarded(true);
+        // 기본 시간대로 알림 자동 스케줄링
+        await scheduleRandomDailyMessage(['forenoon', 'afternoon', 'evening']);
         router.replace('/(tabs)');
     };
 

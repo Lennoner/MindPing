@@ -6,6 +6,7 @@ import { Colors } from '../../src/constants';
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
     const icons: Record<string, string> = {
         home: '🏠',
+        archive: '📬',
         diary: '📝',
         settings: '⚙️',
     };
@@ -15,6 +16,7 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
             <View style={styles.icon}>
                 <View style={{ opacity: focused ? 1 : 0.5 }}>
                     {name === 'home' && <HomeIcon focused={focused} />}
+                    {name === 'archive' && <ArchiveIcon focused={focused} />}
                     {name === 'diary' && <DiaryIcon focused={focused} />}
                     {name === 'settings' && <SettingsIcon focused={focused} />}
                 </View>
@@ -30,6 +32,12 @@ function HomeIcon({ focused }: { focused: boolean }) {
         <View style={[styles.simpleIcon, { borderWidth: 2, borderColor: focused ? Colors.primary : Colors.textSecondary, borderRadius: 4 }]}>
             <View style={{ width: 8, height: 6, borderTopWidth: 2, borderColor: focused ? Colors.primary : Colors.textSecondary, marginTop: -8 }} />
         </View>
+    );
+}
+
+function ArchiveIcon({ focused }: { focused: boolean }) {
+    return (
+        <View style={[styles.simpleIcon, { borderWidth: 2, borderColor: focused ? Colors.primary : Colors.textSecondary, borderRadius: 6, borderBottomWidth: 3 }]} />
     );
 }
 
@@ -63,6 +71,12 @@ export default function TabsLayout() {
                 }}
             />
             <Tabs.Screen
+                name="archive"
+                options={{
+                    tabBarIcon: ({ focused }) => <TabIcon name="archive" focused={focused} />,
+                }}
+            />
+            <Tabs.Screen
                 name="diary"
                 options={{
                     tabBarIcon: ({ focused }) => <TabIcon name="diary" focused={focused} />,
@@ -72,13 +86,6 @@ export default function TabsLayout() {
                 name="settings"
                 options={{
                     tabBarIcon: ({ focused }) => <TabIcon name="settings" focused={focused} />,
-                }}
-            />
-            {/* archive 탭 숨김 */}
-            <Tabs.Screen
-                name="archive"
-                options={{
-                    href: null,
                 }}
             />
         </Tabs>

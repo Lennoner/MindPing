@@ -4,6 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants';
 import { useUserStore } from '../../src/stores/userStore';
+import { useDiaryStore } from '../../src/stores/diaryStore';
+import { useMessageStore } from '../../src/stores/messageStore';
+import * as Notifications from 'expo-notifications';
 
 export default function SettingsScreen() {
     const router = useRouter();
@@ -37,8 +40,13 @@ export default function SettingsScreen() {
                 {
                     text: "초기화",
                     style: "destructive",
-                    onPress: () => {
+                    onPress: async () => {
+                        // 모든 스토어 초기화
                         resetUser();
+                        useDiaryStore.setState({ entries: [] });
+                        useMessageStore.setState({ messages: [], todayMessage: null });
+                        // 예약된 알림 취소
+                        await Notifications.cancelAllScheduledNotificationsAsync();
                         router.replace('/onboarding');
                     }
                 }

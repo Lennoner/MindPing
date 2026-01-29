@@ -1,9 +1,10 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants';
 import { SAMPLE_MESSAGES } from '../../src/constants/data';
 import { useUserStore } from '../../src/stores/userStore';
@@ -28,6 +29,7 @@ export default function HomeScreen() {
     const router = useRouter();
     const { user, lastMessageId, setLastMessage } = useUserStore();
     const { setTodayMessage } = useMessageStore();
+    const [copied, setCopied] = useState(false);
     const today = new Date();
     const month = today.getMonth() + 1;
     const day = today.getDate();
@@ -65,6 +67,12 @@ export default function HomeScreen() {
     }, [todayDateString, todayMessage, lastMessageId, setTodayMessage, setLastMessage]);
 
     const userName = user?.nickname || '사용자';
+
+    const handleCopy = async () => {
+        await Clipboard.setStringAsync(todayMessage.content);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
@@ -105,9 +113,9 @@ export default function HomeScreen() {
 
                         {/* 하단 영역 */}
                         <View style={styles.cardFooter}>
-                            <TouchableOpacity style={styles.shareBtn}>
-                                <Text style={styles.shareIcon}>↗️</Text>
-                                <Text style={styles.shareText}>공유하기</Text>
+                            <TouchableOpacity style={styles.copyBtn} onPress={handleCopy}>
+                                <Text style={styles.copyIcon}>{copied ? '✓' : '📋'}</Text>
+                                <Text style={styles.copyText}>{copied ? '복사됨' : '복사하기'}</Text>
                             </TouchableOpacity>
                             <Text style={styles.pingNumber}>PING #{todayMessage.id.padStart(3, '0')}</Text>
                         </View>
@@ -227,15 +235,15 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    shareBtn: {
+    copyBtn: {
         flexDirection: 'row',
         alignItems: 'center',
     },
-    shareIcon: {
-        fontSize: 16,
+    copyIcon: {
+        fontSize: 14,
         marginRight: Spacing.xs,
     },
-    shareText: {
+    copyText: {
         fontSize: FontSize.sm,
         color: Colors.textSecondary,
     },
