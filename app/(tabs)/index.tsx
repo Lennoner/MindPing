@@ -154,11 +154,11 @@ export default function HomeScreen() {
                             {hasTodayEntry ? '오늘의 미션 완료!' : '오늘의 미션'}
                         </Text>
                         <Text style={styles.missionTitle}>
-                            {hasTodayEntry ? '감정 기록을 확인해보세요' : '오늘의 감정 기록하기'}
+                            {hasTodayEntry ? '감사 일기를 확인해보세요' : '오늘의 감사 기록하기'}
                         </Text>
                     </View>
                     <View style={styles.missionIcon}>
-                        <Text style={styles.missionEmoji}>{hasTodayEntry ? '✅' : '✏️'}</Text>
+                        <Text style={styles.missionEmoji}>{hasTodayEntry ? '✅' : '🙏'}</Text>
                     </View>
                 </TouchableOpacity>
             </ScrollView>

@@ -6,7 +6,7 @@ import { Colors } from '../../src/constants';
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
     const icons: Record<string, string> = {
         home: '🏠',
-        diary: '📝',
+        diary: '🙏',
         archive: '📬',
         settings: '⚙️',
     };
