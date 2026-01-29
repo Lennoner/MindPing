@@ -94,7 +94,7 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
 
                 <View style={styles.footer}>
-                    <Text style={styles.version}>MindPing v2.0</Text>
+                    <Text style={styles.version}>MindPing v1.0.0</Text>
                     <Text style={styles.copyright}>Simple & Private Healing App</Text>
                 </View>
             </View>

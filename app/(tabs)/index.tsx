@@ -1,13 +1,21 @@
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Share } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants';
-import { SAMPLE_MESSAGES } from '../../src/constants/data';
+import { SAMPLE_MESSAGES, MessageData } from '../../src/constants/data';
 import { useUserStore } from '../../src/stores/userStore';
+import { useMessageStore } from '../../src/stores/messageStore';
+import { useDiaryStore } from '../../src/stores/diaryStore';
 
 export default function HomeScreen() {
+    const router = useRouter();
     const { user } = useUserStore();
+    const { todayMessage, setTodayMessage } = useMessageStore();
+    const { getEntryByDate } = useDiaryStore();
+
     const today = new Date();
     const month = today.getMonth() + 1;
     const day = today.getDate();
@@ -17,8 +25,79 @@ export default function HomeScreen() {
     const hour = today.getHours();
     const greeting = hour < 12 ? '좋은 아침이에요' : hour < 18 ? '좋은 오후예요' : '편안한 밤 되세요';
 
-    const todayMessage = SAMPLE_MESSAGES[0];
     const userName = user?.nickname || '사용자';
+    const todayDateStr = today.toISOString().split('T')[0];
+    const hasTodayEntry = !!getEntryByDate(todayDateStr);
+
+    // 오늘의 메시지가 없으면 랜덤으로 하나 선택
+    const [displayMessage, setDisplayMessage] = useState<MessageData | null>(null);
+
+    useEffect(() => {
+        if (todayMessage) {
+            // messageStore에 오늘의 메시지가 있으면 그것을 사용
+            const foundMessage = SAMPLE_MESSAGES.find(m => m.id === todayMessage.id);
+            if (foundMessage) {
+                setDisplayMessage(foundMessage);
+            } else {
+                // 못찾으면 랜덤 선택
+                const randomIndex = Math.floor(Math.random() * SAMPLE_MESSAGES.length);
+                setDisplayMessage(SAMPLE_MESSAGES[randomIndex]);
+            }
+        } else {
+            // 오늘의 메시지가 없으면 랜덤으로 하나 선택하고 저장
+            const randomIndex = Math.floor(Math.random() * SAMPLE_MESSAGES.length);
+            const selectedMessage = SAMPLE_MESSAGES[randomIndex];
+            setDisplayMessage(selectedMessage);
+            setTodayMessage({
+                id: selectedMessage.id,
+                content: selectedMessage.content,
+                category: selectedMessage.type as any,
+                receivedAt: new Date(),
+                isRead: false,
+            });
+        }
+    }, [todayMessage]);
+
+    const getTagLabel = (type: string) => {
+        switch (type) {
+            case 'question': return '질문';
+            case 'comfort': return '위로';
+            case 'wisdom': return '지혜';
+            default: return '메시지';
+        }
+    };
+
+    const getTagColor = (type: string) => {
+        switch (type) {
+            case 'question': return '#6366F1';
+            case 'comfort': return '#EC4899';
+            case 'wisdom': return '#10B981';
+            default: return Colors.primary;
+        }
+    };
+
+    const handleShare = async () => {
+        if (!displayMessage) return;
+        try {
+            await Share.share({
+                message: `${displayMessage.content}\n\n- 마음알림 MindPing`,
+            });
+        } catch (error) {
+            console.log('Share error:', error);
+        }
+    };
+
+    const handleNotificationPress = () => {
+        router.push('/notification-settings');
+    };
+
+    const handleMissionPress = () => {
+        router.push('/(tabs)/diary');
+    };
+
+    if (!displayMessage) {
+        return null;
+    }
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
@@ -32,7 +111,7 @@ export default function HomeScreen() {
                         </View>
                         <Text style={styles.userName}>{userName}님</Text>
                     </View>
-                    <TouchableOpacity style={styles.notificationBtn}>
+                    <TouchableOpacity style={styles.notificationBtn} onPress={handleNotificationPress}>
                         <Text style={styles.notificationIcon}>🔔</Text>
                     </TouchableOpacity>
                 </View>
@@ -43,36 +122,43 @@ export default function HomeScreen() {
                         colors={['#F8F7FF', '#F0EEFF']}
                         style={styles.cardGradient}
                     >
-                        {/* 질문 태그 */}
+                        {/* 메시지 타입 태그 */}
                         <View style={styles.tagRow}>
-                            <View style={styles.tag}>
-                                <Text style={styles.tagText}>질문</Text>
+                            <View style={[styles.tag, { backgroundColor: getTagColor(displayMessage.type) }]}>
+                                <Text style={styles.tagText}>{getTagLabel(displayMessage.type)}</Text>
                             </View>
-                            <Text style={styles.sparkle}>✨</Text>
+                            <Text style={styles.sparkle}>{displayMessage.emoji}</Text>
                         </View>
 
                         {/* 메시지 내용 */}
-                        <Text style={styles.messageText}>{todayMessage.content}</Text>
+                        <Text style={styles.messageText}>{displayMessage.content}</Text>
 
                         {/* 하단 영역 */}
                         <View style={styles.cardFooter}>
-                            <TouchableOpacity style={styles.shareBtn}>
+                            <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
                                 <Text style={styles.shareIcon}>↗️</Text>
                                 <Text style={styles.shareText}>공유하기</Text>
                             </TouchableOpacity>
-                            <Text style={styles.pingNumber}>PING #001</Text>
+                            <Text style={styles.pingNumber}>PING #{displayMessage.id.padStart(3, '0')}</Text>
                         </View>
                     </LinearGradient>
                 </View>
 
                 {/* 오늘의 미션 */}
-                <TouchableOpacity style={styles.missionCard}>
+                <TouchableOpacity
+                    style={[styles.missionCard, hasTodayEntry && styles.missionCardCompleted]}
+                    onPress={handleMissionPress}
+                >
                     <View style={styles.missionContent}>
-                        <Text style={styles.missionLabel}>오늘의 미션</Text>
-                        <Text style={styles.missionTitle}>오늘의 감정 기록하기</Text>
+                        <Text style={styles.missionLabel}>
+                            {hasTodayEntry ? '오늘의 미션 완료!' : '오늘의 미션'}
+                        </Text>
+                        <Text style={styles.missionTitle}>
+                            {hasTodayEntry ? '감정 기록을 확인해보세요' : '오늘의 감정 기록하기'}
+                        </Text>
                     </View>
                     <View style={styles.missionIcon}>
-                        <Text style={styles.missionEmoji}>✏️</Text>
+                        <Text style={styles.missionEmoji}>{hasTodayEntry ? '✅' : '✏️'}</Text>
                     </View>
                 </TouchableOpacity>
             </ScrollView>
@@ -200,6 +286,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: Spacing.xl,
+    },
+    missionCardCompleted: {
+        backgroundColor: '#22C55E',
     },
     missionContent: {
         flex: 1,

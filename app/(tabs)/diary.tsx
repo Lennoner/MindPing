@@ -15,18 +15,25 @@ export default function DiaryScreen() {
     const today = new Date().toISOString().split('T')[0];
     const todayEntry = getEntryByDate(today);
 
+    const handleCloseModal = () => {
+        setShowModal(false);
+        setSelectedEmotion(null);
+        setMemo('');
+    };
+
     const handleSave = () => {
         if (selectedEmotion) {
             addEntry(selectedEmotion, memo.trim() || undefined);
-            setShowModal(false);
-            setSelectedEmotion(null);
-            setMemo('');
+            handleCloseModal();
         }
     };
 
-    const handleOpenModal = (emotion?: EmotionType) => {
+    const handleOpenModal = (emotion?: EmotionType, existingMemo?: string) => {
         if (emotion) {
             setSelectedEmotion(emotion);
+        }
+        if (existingMemo !== undefined) {
+            setMemo(existingMemo);
         }
         setShowModal(true);
     };
@@ -125,7 +132,7 @@ export default function DiaryScreen() {
                                 </Text>
                             )}
                         </View>
-                        <TouchableOpacity onPress={() => handleOpenModal(todayEntry.emotion)}>
+                        <TouchableOpacity onPress={() => handleOpenModal(todayEntry.emotion, todayEntry.memo || '')}>
                             <Text style={styles.editButton}>수정</Text>
                         </TouchableOpacity>
                     </View>
@@ -199,7 +206,7 @@ export default function DiaryScreen() {
                 visible={showModal}
                 animationType="slide"
                 transparent
-                onRequestClose={() => setShowModal(false)}
+                onRequestClose={handleCloseModal}
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
@@ -238,7 +245,7 @@ export default function DiaryScreen() {
                         <View style={styles.modalButtons}>
                             <Button
                                 mode="outlined"
-                                onPress={() => setShowModal(false)}
+                                onPress={handleCloseModal}
                                 style={styles.modalButton}
                             >
                                 취소
