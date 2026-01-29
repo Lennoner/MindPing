@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-import { SAMPLE_MESSAGES, MessageData } from '../constants/data';
+import { SAMPLE_MESSAGES } from '../constants/data';
 import { useUserStore } from '../stores/userStore';
 
 // 알림 핸들러 설정 (앱 실행 중에도 알림 표시)
