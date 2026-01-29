@@ -2,16 +2,22 @@ import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants';
 import { useUserStore } from '../../src/stores/userStore';
+import { useMessageStore } from '../../src/stores/messageStore';
+import { useDiaryStore } from '../../src/stores/diaryStore';
+import { ScreenHeader } from '../../src/components';
 
 export default function SettingsScreen() {
     const router = useRouter();
     const { user, resetUser } = useUserStore();
+    const { resetDiary } = useDiaryStore();
+    const { resetMessages } = useMessageStore();
 
     const menuItems = [
-        { icon: '🔔', label: '알림 설정', path: '/notification-settings' },
-        { icon: '🛡️', label: '개인정보 처리방침', path: 'https://Lennoner.github.io/MindPing/public/privacy-policy.html', isExternal: true },
+        { iconName: 'notifications-outline' as const, label: '알림 설정', path: '/notification-settings' },
+        { iconName: 'shield-outline' as const, label: '개인정보 처리방침', path: 'https://Lennoner.github.io/MindPing/public/privacy-policy.html', isExternal: true },
     ];
 
     const handleMenuPress = (item: typeof menuItems[0]) => {
@@ -39,6 +45,8 @@ export default function SettingsScreen() {
                     style: "destructive",
                     onPress: () => {
                         resetUser();
+                        resetDiary();
+                        resetMessages();
                         router.replace('/onboarding');
                     }
                 }
@@ -48,9 +56,8 @@ export default function SettingsScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>설정</Text>
-            </View>
+            {/* 통일된 헤더 */}
+            <ScreenHeader title="설정" />
 
             <View style={styles.content}>
                 {/* 프로필 카드 */}
@@ -79,18 +86,19 @@ export default function SettingsScreen() {
                         >
                             <View style={styles.menuLeft}>
                                 <View style={styles.menuIconBox}>
-                                    <Text style={styles.menuIcon}>{item.icon}</Text>
+                                    <Ionicons name={item.iconName} size={20} color={Colors.textSecondary} />
                                 </View>
                                 <Text style={styles.menuLabel}>{item.label}</Text>
                             </View>
-                            <Text style={styles.chevron}>›</Text>
+                            <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
                         </TouchableOpacity>
                     ))}
                 </View>
 
                 {/* 초기화 버튼 */}
                 <TouchableOpacity style={styles.resetBtn} onPress={handleReset}>
-                    <Text style={styles.resetText}>🗑️ 데이터 초기화</Text>
+                    <Ionicons name="trash-outline" size={18} color="#DC2626" style={{ marginRight: 6 }} />
+                    <Text style={styles.resetText}>데이터 초기화</Text>
                 </TouchableOpacity>
 
                 <View style={styles.footer}>

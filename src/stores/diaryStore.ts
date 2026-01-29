@@ -18,6 +18,7 @@ interface DiaryState {
     deleteEntry: (id: string) => void;
     getEntryByDate: (date: string) => GratitudeEntry | undefined;
     getEntriesForMonth: (year: number, month: number) => GratitudeEntry[];
+    resetDiary: () => void;
 }
 
 export const useDiaryStore = create<DiaryState>()(
@@ -68,6 +69,8 @@ export const useDiaryStore = create<DiaryState>()(
                 const prefix = `${year}-${String(month).padStart(2, '0')}`;
                 return get().entries.filter(e => e.date.startsWith(prefix));
             },
+
+            resetDiary: () => set({ entries: [] }),
         }),
         {
             name: 'mindping-gratitude-storage',

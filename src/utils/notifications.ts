@@ -91,11 +91,17 @@ export async function scheduleRandomDailyMessage(userTimeSlots: string[]) {
 
     console.log(`Scheduling notification for: ${date.toLocaleString()} with message: ${randomMessage.content}`);
 
-    // 3. 알림 예약
+    // 3. 알림 예약 (메시지 미리보기: 50자로 제한)
+    const previewLength = 50;
+    const messagePreview = randomMessage.content.length > previewLength
+        ? randomMessage.content.slice(0, previewLength) + '...'
+        : randomMessage.content;
+
     await Notifications.scheduleNotificationAsync({
         content: {
             title: "마음알림",
-            body: randomMessage.content,
+            subtitle: "오늘의 메시지가 도착했어요 💜",
+            body: messagePreview,
             data: { messageId: randomMessage.id },
         },
         trigger: {

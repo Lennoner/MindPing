@@ -146,6 +146,7 @@ export interface OnboardingSlide {
     id: number;
     title: string;
     description: string;
+    icon?: string; // Ionicons 아이콘 이름 (선택사항)
 }
 
 export const ONBOARDING_SLIDES: OnboardingSlide[] = [
@@ -153,16 +154,19 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
         id: 1,
         title: '예측할 수 없는 순간에',
         description: '매일 다른 시간, 예상치 못한 순간에\n따뜻한 위로가 찾아갑니다.',
+        icon: 'notifications-outline',
     },
     {
         id: 2,
         title: '아무것도 하지 않아도 돼요',
         description: '앱을 열지 않아도, 기록하지 않아도\n메시지가 먼저 다가갑니다.',
+        icon: 'leaf-outline',
     },
     {
         id: 3,
         title: '완전 무료, 안심하세요',
         description: '회원가입도, 결제도 필요 없어요.\n그냥 편안하게 위로만 받으세요.',
+        icon: 'shield-checkmark-outline',
     },
 ];
 

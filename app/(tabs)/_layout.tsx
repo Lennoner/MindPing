@@ -1,61 +1,79 @@
 import { Tabs } from 'expo-router';
-import { View, StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../src/constants';
 
-// 간단한 아이콘 컴포넌트 (이모지 기반)
-function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-    const icons: Record<string, string> = {
-        home: '🏠',
-        diary: '🙏',
-        archive: '📬',
-        settings: '⚙️',
-    };
-
-    return (
-        <View style={[styles.iconContainer, focused && styles.iconFocused]}>
-            <View style={styles.icon}>
-                <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}>
-                    {icons[name]}
-                </Text>
-            </View>
-            {focused && <View style={styles.dot} />}
-        </View>
-    );
-}
-
 export default function TabsLayout() {
+    const insets = useSafeAreaInsets();
+
     return (
         <Tabs
             screenOptions={{
                 headerShown: false,
-                tabBarStyle: styles.tabBar,
-                tabBarShowLabel: false,
+                tabBarStyle: [
+                    styles.tabBar,
+                    {
+                        height: 56 + insets.bottom,
+                        paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
+                    }
+                ],
+                tabBarShowLabel: true,
+                tabBarLabelStyle: styles.tabBarLabel,
                 tabBarActiveTintColor: Colors.primary,
-                tabBarInactiveTintColor: Colors.textSecondary,
+                tabBarInactiveTintColor: Colors.textTertiary,
             }}
         >
             <Tabs.Screen
                 name="index"
                 options={{
-                    tabBarIcon: ({ focused }) => <TabIcon name="home" focused={focused} />,
+                    title: '홈',
+                    tabBarIcon: ({ focused, color }) => (
+                        <Ionicons
+                            name={focused ? 'home' : 'home-outline'}
+                            size={22}
+                            color={color}
+                        />
+                    ),
                 }}
             />
             <Tabs.Screen
                 name="diary"
                 options={{
-                    tabBarIcon: ({ focused }) => <TabIcon name="diary" focused={focused} />,
+                    title: '일기',
+                    tabBarIcon: ({ focused, color }) => (
+                        <Ionicons
+                            name={focused ? 'book' : 'book-outline'}
+                            size={22}
+                            color={color}
+                        />
+                    ),
                 }}
             />
             <Tabs.Screen
                 name="archive"
                 options={{
-                    tabBarIcon: ({ focused }) => <TabIcon name="archive" focused={focused} />,
+                    title: '보관함',
+                    tabBarIcon: ({ focused, color }) => (
+                        <Ionicons
+                            name={focused ? 'file-tray-full' : 'file-tray-full-outline'}
+                            size={22}
+                            color={color}
+                        />
+                    ),
                 }}
             />
             <Tabs.Screen
                 name="settings"
                 options={{
-                    tabBarIcon: ({ focused }) => <TabIcon name="settings" focused={focused} />,
+                    title: '설정',
+                    tabBarIcon: ({ focused, color }) => (
+                        <Ionicons
+                            name={focused ? 'settings' : 'settings-outline'}
+                            size={22}
+                            color={color}
+                        />
+                    ),
                 }}
             />
         </Tabs>
@@ -65,29 +83,15 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
     tabBar: {
         backgroundColor: Colors.white,
-        borderTopWidth: 0,
+        borderTopWidth: 1,
+        borderTopColor: Colors.border,
         elevation: 0,
         shadowOpacity: 0,
-        height: 80,
-        paddingTop: 12,
-        paddingBottom: 20,
+        paddingTop: 6,
     },
-    iconContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    iconFocused: {},
-    icon: {
-        width: 28,
-        height: 28,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    dot: {
-        width: 4,
-        height: 4,
-        borderRadius: 2,
-        backgroundColor: Colors.primary,
-        marginTop: 4,
+    tabBarLabel: {
+        fontSize: 11,
+        fontWeight: '500',
+        marginTop: 2,
     },
 });

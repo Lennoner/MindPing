@@ -1,45 +1,83 @@
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants';
 import { SAMPLE_MESSAGES } from '../../src/constants/data';
 import { useMessageStore } from '../../src/stores/messageStore';
+import { ScreenHeader, EmptyState } from '../../src/components';
+import { formatDateKorean } from '../../src/utils';
 
 export default function ArchiveScreen() {
-    const { messages } = useMessageStore();
+    const { messages, toggleFavorite } = useMessageStore();
+    const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
     // 메시지가 있으면 실제 데이터 사용, 없으면 빈 배열
-    const archiveMessages = messages.map((msg, index) => {
-        const receivedDate = new Date(msg.receivedAt);
-        const today = new Date();
-        const isToday = receivedDate.toDateString() === today.toDateString();
+    const archiveMessages = messages
+        .filter(msg => !showFavoritesOnly || msg.isFavorite)
+        .map((msg) => {
+            const receivedDate = new Date(msg.receivedAt);
+            const today = new Date();
+            const isToday = receivedDate.toDateString() === today.toDateString();
 
-        // SAMPLE_MESSAGES에서 해당 메시지의 emoji 찾기
-        const originalMessage = SAMPLE_MESSAGES.find(m => m.id === msg.id);
-        const emoji = originalMessage?.emoji || '💜';
+            // SAMPLE_MESSAGES에서 해당 메시지의 emoji 찾기
+            const originalMessage = SAMPLE_MESSAGES.find(m => m.id === msg.id);
+            const emoji = originalMessage?.emoji || '💜';
 
-        return {
-            ...msg,
-            emoji,
-            date: formatDate(receivedDate),
-            isToday,
-        };
-    });
+            return {
+                ...msg,
+                emoji,
+                date: formatDateKorean(receivedDate),
+                isToday,
+            };
+        });
+
+    // 카테고리 기반 라인 색상
+    const getLineColor = (index: number) => {
+        const colors = [
+            Colors.categoryQuestion,
+            Colors.categoryComfort,
+            Colors.categoryWisdom,
+            Colors.categoryDefault,
+        ];
+        return colors[index % colors.length];
+    };
+
+    // 필터 토글 버튼
+    const FilterButton = (
+        <TouchableOpacity
+            style={[styles.filterButton, showFavoritesOnly && styles.filterButtonActive]}
+            onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
+        >
+            <Ionicons
+                name={showFavoritesOnly ? 'heart' : 'heart-outline'}
+                size={18}
+                color={showFavoritesOnly ? Colors.white : Colors.primary}
+            />
+            <Text style={[styles.filterButtonText, showFavoritesOnly && styles.filterButtonTextActive]}>
+                즐겨찾기
+            </Text>
+        </TouchableOpacity>
+    );
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>보관함</Text>
-                <Text style={styles.headerSubtitle}>받은 메시지 {archiveMessages.length}개</Text>
-            </View>
+            {/* 통일된 헤더 */}
+            <ScreenHeader
+                title="보관함"
+                subtitle={`받은 메시지 ${messages.length}개`}
+                rightAction={FilterButton}
+                showBorder
+            />
 
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                 {archiveMessages.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyEmoji}>📭</Text>
-                        <Text style={styles.emptyTitle}>아직 받은 메시지가 없어요</Text>
-                        <Text style={styles.emptyDesc}>알림을 설정하면 매일 따뜻한 메시지를 받을 수 있어요</Text>
-                    </View>
+                    <EmptyState
+                        icon={showFavoritesOnly ? 'heart-outline' : 'mail-open-outline'}
+                        title={showFavoritesOnly ? '즐겨찾기한 메시지가 없어요' : '아직 받은 메시지가 없어요'}
+                        description={showFavoritesOnly ? '마음에 드는 메시지의 하트를 눌러보세요' : '알림을 설정하면 매일 따뜻한 메시지를 받을 수 있어요'}
+                    />
                 ) : (
                     archiveMessages.map((message, index) => (
                         <View key={message.id || index} style={styles.cardContainer}>
@@ -55,81 +93,64 @@ export default function ArchiveScreen() {
                                     {message.isToday && <Text style={styles.todayLabel}>오늘</Text>}
                                 </View>
 
-                                <Text style={styles.emoji}>{message.emoji}</Text>
+                                {/* 즐겨찾기 버튼 */}
+                                <TouchableOpacity
+                                    style={styles.favoriteButton}
+                                    onPress={() => toggleFavorite(message.id)}
+                                >
+                                    <Ionicons
+                                        name={message.isFavorite ? 'heart' : 'heart-outline'}
+                                        size={22}
+                                        color={message.isFavorite ? Colors.primary : Colors.textTertiary}
+                                    />
+                                </TouchableOpacity>
 
                                 <Text style={styles.content} numberOfLines={4}>{message.content}</Text>
                             </View>
                         </View>
                     ))
                 )}
-                <View style={{ height: 20 }} />
+                <View style={{ height: Spacing.lg }} />
             </ScrollView>
         </SafeAreaView>
     );
 }
 
-function formatDate(date: Date): string {
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    return `${month}월 ${day}일`;
-}
-
-function getLineColor(index: number) {
-    const colors = ['#6366F1', '#EC4899', '#10B981', '#F59E0B'];
-    return colors[index % colors.length];
-}
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.white,
-    },
-    header: {
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
-    },
-    headerTitle: {
-        fontSize: FontSize.lg,
-        fontWeight: '700',
-        color: Colors.text,
-    },
-    headerSubtitle: {
-        fontSize: FontSize.sm,
-        color: Colors.textSecondary,
-        marginTop: 4,
+        backgroundColor: Colors.background,
     },
     scrollView: {
         flex: 1,
         padding: Spacing.lg,
     },
-    emptyContainer: {
-        flex: 1,
+    filterButton: {
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        paddingTop: 80,
+        paddingVertical: Spacing.xs,
+        paddingHorizontal: Spacing.md,
+        borderRadius: BorderRadius.full,
+        borderWidth: 1,
+        borderColor: Colors.primary,
+        backgroundColor: 'transparent',
     },
-    emptyEmoji: {
-        fontSize: 64,
-        marginBottom: Spacing.md,
+    filterButtonActive: {
+        backgroundColor: Colors.primary,
     },
-    emptyTitle: {
-        fontSize: FontSize.lg,
+    filterButtonText: {
+        fontSize: FontSize.xs,
+        color: Colors.primary,
         fontWeight: '600',
-        color: Colors.text,
-        marginBottom: Spacing.sm,
+        marginLeft: 4,
     },
-    emptyDesc: {
-        fontSize: FontSize.md,
-        color: Colors.textSecondary,
-        textAlign: 'center',
-        paddingHorizontal: Spacing.xl,
+    filterButtonTextActive: {
+        color: Colors.white,
     },
     cardContainer: {
         flexDirection: 'row',
         marginBottom: Spacing.lg,
-        minHeight: 140,
+        minHeight: 120,
     },
     leftLine: {
         width: 4,
@@ -141,7 +162,7 @@ const styles = StyleSheet.create({
     },
     card: {
         flex: 1,
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.surface,
         borderRadius: BorderRadius.lg,
         padding: Spacing.lg,
         borderWidth: 1,
@@ -173,11 +194,11 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginLeft: Spacing.xs,
     },
-    emoji: {
+    favoriteButton: {
         position: 'absolute',
         top: Spacing.md,
         right: Spacing.md,
-        fontSize: 20,
+        padding: Spacing.xs,
     },
     content: {
         fontSize: FontSize.md,
@@ -185,5 +206,7 @@ const styles = StyleSheet.create({
         lineHeight: 24,
         fontWeight: '500',
         marginTop: Spacing.xs,
+        paddingRight: Spacing.xl,
     },
 });
+

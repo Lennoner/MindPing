@@ -4,6 +4,7 @@ import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants';
 import { SAMPLE_MESSAGES, MessageData } from '../../src/constants/data';
 import { useUserStore } from '../../src/stores/userStore';
@@ -51,7 +52,7 @@ export default function HomeScreen() {
             setTodayMessage({
                 id: selectedMessage.id,
                 content: selectedMessage.content,
-                category: selectedMessage.type as any,
+                category: selectedMessage.type, // type이 이미 'question' | 'comfort' | 'wisdom'
                 receivedAt: new Date(),
                 isRead: false,
             });
@@ -69,10 +70,10 @@ export default function HomeScreen() {
 
     const getTagColor = (type: string) => {
         switch (type) {
-            case 'question': return '#6366F1';
-            case 'comfort': return '#EC4899';
-            case 'wisdom': return '#10B981';
-            default: return Colors.primary;
+            case 'question': return Colors.categoryQuestion;
+            case 'comfort': return Colors.categoryComfort;
+            case 'wisdom': return Colors.categoryWisdom;
+            default: return Colors.categoryDefault;
         }
     };
 
@@ -112,14 +113,14 @@ export default function HomeScreen() {
                         <Text style={styles.userName}>{userName}님</Text>
                     </View>
                     <TouchableOpacity style={styles.notificationBtn} onPress={handleNotificationPress}>
-                        <Text style={styles.notificationIcon}>🔔</Text>
+                        <Ionicons name="notifications-outline" size={24} color={Colors.textSecondary} />
                     </TouchableOpacity>
                 </View>
 
                 {/* 오늘의 메시지 카드 */}
                 <View style={styles.messageCard}>
                     <LinearGradient
-                        colors={['#F8F7FF', '#F0EEFF']}
+                        colors={[Colors.messageCardGradientStart, Colors.messageCardGradientEnd]}
                         style={styles.cardGradient}
                     >
                         {/* 메시지 타입 태그 */}
@@ -127,7 +128,6 @@ export default function HomeScreen() {
                             <View style={[styles.tag, { backgroundColor: getTagColor(displayMessage.type) }]}>
                                 <Text style={styles.tagText}>{getTagLabel(displayMessage.type)}</Text>
                             </View>
-                            <Text style={styles.sparkle}>{displayMessage.emoji}</Text>
                         </View>
 
                         {/* 메시지 내용 */}
@@ -136,8 +136,8 @@ export default function HomeScreen() {
                         {/* 하단 영역 */}
                         <View style={styles.cardFooter}>
                             <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
-                                <Text style={styles.shareIcon}>↗️</Text>
-                                <Text style={styles.shareText}>공유하기</Text>
+                                <Ionicons name="share-outline" size={16} color={Colors.primary} />
+                                <Text style={styles.shareText}>공유</Text>
                             </TouchableOpacity>
                             <Text style={styles.pingNumber}>PING #{displayMessage.id.padStart(3, '0')}</Text>
                         </View>
@@ -158,9 +158,48 @@ export default function HomeScreen() {
                         </Text>
                     </View>
                     <View style={styles.missionIcon}>
-                        <Text style={styles.missionEmoji}>{hasTodayEntry ? '✅' : '🙏'}</Text>
+                        <Ionicons
+                            name={hasTodayEntry ? 'checkmark' : 'arrow-forward'}
+                            size={20}
+                            color={Colors.white}
+                        />
                     </View>
                 </TouchableOpacity>
+
+                {/* 오늘의 팁 */}
+                <View style={styles.tipCard}>
+                    <View style={styles.tipHeader}>
+                        <Ionicons name="bulb-outline" size={20} color={Colors.warning} />
+                        <Text style={styles.tipLabel}>오늘의 팁</Text>
+                    </View>
+                    <Text style={styles.tipText}>
+                        하루 5분 감사 일기를 쓰면 행복감이 25% 증가한다는 연구가 있어요. 작은 것부터 시작해보세요.
+                    </Text>
+                </View>
+
+                {/* 퀵 액션 */}
+                <View style={styles.quickActions}>
+                    <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/(tabs)/archive')}>
+                        <View style={styles.quickActionIcon}>
+                            <Ionicons name="mail-outline" size={22} color={Colors.primary} />
+                        </View>
+                        <Text style={styles.quickActionLabel}>보관함</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/(tabs)/diary')}>
+                        <View style={styles.quickActionIcon}>
+                            <Ionicons name="book-outline" size={22} color={Colors.primary} />
+                        </View>
+                        <Text style={styles.quickActionLabel}>감사일기</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/(tabs)/settings')}>
+                        <View style={styles.quickActionIcon}>
+                            <Ionicons name="settings-outline" size={22} color={Colors.primary} />
+                        </View>
+                        <Text style={styles.quickActionLabel}>설정</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <View style={{ height: Spacing.xl }} />
             </ScrollView>
         </SafeAreaView>
     );
@@ -179,8 +218,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginTop: Spacing.md,
-        marginBottom: Spacing.xl,
+        marginTop: Spacing.sm,
+        marginBottom: Spacing.md,
     },
     dateText: {
         fontSize: FontSize.sm,
@@ -216,14 +255,14 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     messageCard: {
-        marginBottom: Spacing.lg,
-        borderRadius: BorderRadius.xl,
+        marginBottom: Spacing.md,
+        borderRadius: BorderRadius.lg,
         overflow: 'hidden',
-        shadowColor: '#6366F1',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
     },
     cardGradient: {
         padding: Spacing.lg,
@@ -231,9 +270,8 @@ const styles = StyleSheet.create({
     },
     tagRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: Spacing.md,
+        marginBottom: Spacing.sm,
     },
     tag: {
         backgroundColor: Colors.primary,
@@ -250,11 +288,11 @@ const styles = StyleSheet.create({
         fontSize: 20,
     },
     messageText: {
-        fontSize: FontSize.xl,
-        fontWeight: '600',
+        fontSize: FontSize.lg,
+        fontWeight: '500',
         color: Colors.text,
-        lineHeight: 32,
-        marginBottom: Spacing.xl,
+        lineHeight: 28,
+        marginBottom: Spacing.md,
     },
     cardFooter: {
         flexDirection: 'row',
@@ -280,15 +318,15 @@ const styles = StyleSheet.create({
     },
     missionCard: {
         backgroundColor: Colors.primary,
-        borderRadius: BorderRadius.xl,
-        padding: Spacing.lg,
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.md,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: Spacing.xl,
+        marginBottom: Spacing.md,
     },
     missionCardCompleted: {
-        backgroundColor: '#22C55E',
+        backgroundColor: Colors.missionCompleted,
     },
     missionContent: {
         flex: 1,
@@ -304,14 +342,67 @@ const styles = StyleSheet.create({
         color: Colors.white,
     },
     missionIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         alignItems: 'center',
         justifyContent: 'center',
     },
     missionEmoji: {
-        fontSize: 24,
+        fontSize: 18,
+        color: Colors.white,
+        fontWeight: '600',
+    },
+    tipCard: {
+        backgroundColor: Colors.surfaceVariant,
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.md,
+        marginBottom: Spacing.lg,
+    },
+    tipHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: Spacing.sm,
+    },
+    tipLabel: {
+        fontSize: FontSize.sm,
+        fontWeight: '600',
+        color: Colors.warning,
+        marginLeft: Spacing.xs,
+    },
+    tipText: {
+        fontSize: FontSize.sm,
+        color: Colors.textSecondary,
+        lineHeight: 22,
+    },
+    quickActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: Spacing.md,
+    },
+    quickAction: {
+        flex: 1,
+        alignItems: 'center',
+        paddingVertical: Spacing.md,
+        marginHorizontal: Spacing.xs,
+        backgroundColor: Colors.surface,
+        borderRadius: BorderRadius.lg,
+        borderWidth: 1,
+        borderColor: Colors.border,
+    },
+    quickActionIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.primary + '15',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Spacing.sm,
+    },
+    quickActionLabel: {
+        fontSize: FontSize.xs,
+        color: Colors.textSecondary,
+        fontWeight: '500',
     },
 });

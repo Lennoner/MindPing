@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput } from 'react-native';
-import { Text, Button, IconButton } from 'react-native-paper';
+import { Text, Button } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useDiaryStore } from '../../src/stores';
 import { Colors, FontSize, Spacing, BorderRadius } from '../../src/constants';
+import { ScreenHeader, EmptyState, IconButton } from '../../src/components';
+import { formatISODateKorean, getTodayISO } from '../../src/utils';
 
 export default function DiaryScreen() {
     const { entries, addEntry, getEntryByDate } = useDiaryStore();
@@ -11,7 +15,7 @@ export default function DiaryScreen() {
     const [gratitudeText, setGratitudeText] = useState('');
     const [currentMonth, setCurrentMonth] = useState(new Date());
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayISO();
     const todayEntry = getEntryByDate(today);
 
     const handleCloseModal = () => {
@@ -69,41 +73,53 @@ export default function DiaryScreen() {
         });
     };
 
-    const formatDate = (dateStr: string) => {
-        const [year, month, day] = dateStr.split('-');
-        return `${parseInt(month)}월 ${parseInt(day)}일`;
-    };
+    // 헤더 우측 토글 버튼
+    const ViewToggle = (
+        <View style={styles.viewToggle}>
+            <IconButton
+                icon={viewMode === 'calendar' ? 'calendar' : 'calendar-outline'}
+                selected={viewMode === 'calendar'}
+                onPress={() => setViewMode('calendar')}
+            />
+            <IconButton
+                icon={viewMode === 'list' ? 'list' : 'list-outline'}
+                selected={viewMode === 'list'}
+                onPress={() => setViewMode('list')}
+            />
+        </View>
+    );
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top']}>
+            {/* 통일된 헤더 */}
+            <ScreenHeader
+                title="감사 일기"
+                subtitle="오늘 감사한 일을 기록해보세요"
+                rightAction={ViewToggle}
+            />
+
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-                {/* 헤더 */}
-                <View style={styles.header}>
-                    <View>
-                        <Text style={styles.title}>감사 일기 🙏</Text>
-                        <Text style={styles.subtitle}>오늘 감사한 일을 기록해보세요</Text>
+                {/* 감사일기 효과 설명 배너 (처음 사용자에게만 또는 기록이 없을 때) */}
+                {entries.length < 3 && (
+                    <View style={styles.effectBanner}>
+                        <Ionicons name="sparkles" size={20} color={Colors.primary} />
+                        <View style={styles.effectTextContainer}>
+                            <Text style={styles.effectTitle}>감사 일기의 힘</Text>
+                            <Text style={styles.effectDescription}>
+                                매일 감사한 일을 기록하면 행복감이 25% 증가하고,{'\n'}
+                                스트레스가 줄어든다는 연구 결과가 있어요.
+                            </Text>
+                        </View>
                     </View>
-                    <View style={styles.viewToggle}>
-                        <IconButton
-                            icon="calendar"
-                            selected={viewMode === 'calendar'}
-                            onPress={() => setViewMode('calendar')}
-                            iconColor={viewMode === 'calendar' ? Colors.primary : Colors.textTertiary}
-                        />
-                        <IconButton
-                            icon="format-list-bulleted"
-                            selected={viewMode === 'list'}
-                            onPress={() => setViewMode('list')}
-                            iconColor={viewMode === 'list' ? Colors.primary : Colors.textTertiary}
-                        />
-                    </View>
-                </View>
+                )}
 
                 {/* 오늘 감사 기록 */}
                 {!todayEntry ? (
                     <TouchableOpacity style={styles.todaySection} onPress={() => handleOpenModal()}>
                         <View style={styles.todayPrompt}>
-                            <Text style={styles.todayEmoji}>✨</Text>
+                            <View style={styles.todayIconContainer}>
+                                <Ionicons name="add" size={24} color={Colors.primary} />
+                            </View>
                             <View style={styles.todayTextContainer}>
                                 <Text style={styles.sectionTitle}>오늘 감사한 일은?</Text>
                                 <Text style={styles.todayHint}>탭하여 기록하기</Text>
@@ -112,7 +128,9 @@ export default function DiaryScreen() {
                     </TouchableOpacity>
                 ) : (
                     <View style={styles.todayRecorded}>
-                        <Text style={styles.recordedEmoji}>🙏</Text>
+                        <View style={styles.recordedIconContainer}>
+                            <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
+                        </View>
                         <View style={styles.recordedInfo}>
                             <Text style={styles.recordedTitle}>오늘의 감사</Text>
                             <Text style={styles.recordedContent} numberOfLines={3}>
@@ -125,15 +143,22 @@ export default function DiaryScreen() {
                     </View>
                 )}
 
+
                 {/* 달력 또는 리스트 */}
                 {viewMode === 'calendar' ? (
                     <View style={styles.calendarSection}>
                         <View style={styles.calendarHeader}>
-                            <IconButton icon="chevron-left" onPress={() => changeMonth(-1)} />
+                            <IconButton
+                                icon="chevron-back"
+                                onPress={() => changeMonth(-1)}
+                            />
                             <Text style={styles.calendarTitle}>
                                 {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
                             </Text>
-                            <IconButton icon="chevron-right" onPress={() => changeMonth(1)} />
+                            <IconButton
+                                icon="chevron-forward"
+                                onPress={() => changeMonth(1)}
+                            />
                         </View>
 
                         <View style={styles.weekDays}>
@@ -154,7 +179,7 @@ export default function DiaryScreen() {
                                                 {day.date}
                                             </Text>
                                             {day.hasEntry && (
-                                                <Text style={styles.dayEmoji}>🙏</Text>
+                                                <View style={styles.dayDot} />
                                             )}
                                         </>
                                     )}
@@ -164,30 +189,39 @@ export default function DiaryScreen() {
 
                         <View style={styles.legendContainer}>
                             <View style={styles.legendItem}>
-                                <Text style={styles.legendEmoji}>🙏</Text>
-                                <Text style={styles.legendText}>감사 기록한 날</Text>
+                                <View style={styles.legendDot} />
+                                <Text style={styles.legendText}>기록한 날</Text>
                             </View>
                         </View>
                     </View>
                 ) : (
                     <View style={styles.listSection}>
-                        {[...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((entry) => (
-                            <View key={entry.id} style={styles.listItem}>
-                                <View style={styles.listHeader}>
-                                    <Text style={styles.listDate}>{formatDate(entry.date)}</Text>
-                                    <Text style={styles.listEmoji}>🙏</Text>
-                                </View>
-                                <Text style={styles.listContent} numberOfLines={3}>
-                                    {entry.content}
-                                </Text>
-                            </View>
-                        ))}
-                        {entries.length === 0 && (
-                            <View style={styles.emptyState}>
-                                <Text style={styles.emptyEmoji}>📝</Text>
-                                <Text style={styles.emptyTitle}>아직 기록이 없어요</Text>
-                                <Text style={styles.emptyDesc}>오늘부터 감사 일기를 시작해보세요</Text>
-                            </View>
+                        {entries.length === 0 ? (
+                            <EmptyState
+                                icon="document-text-outline"
+                                title="아직 기록이 없어요"
+                                description="오늘부터 감사 일기를 시작해보세요"
+                            />
+                        ) : (
+                            [...entries]
+                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                .map((entry) => (
+                                    <View key={entry.id} style={styles.listItem}>
+                                        <View style={styles.listHeader}>
+                                            <Text style={styles.listDate}>
+                                                {formatISODateKorean(entry.date)}
+                                            </Text>
+                                            <Ionicons
+                                                name="checkmark-circle"
+                                                size={18}
+                                                color={Colors.success}
+                                            />
+                                        </View>
+                                        <Text style={styles.listContent} numberOfLines={3}>
+                                            {entry.content}
+                                        </Text>
+                                    </View>
+                                ))
                         )}
                     </View>
                 )}
@@ -209,7 +243,7 @@ export default function DiaryScreen() {
 
                         <TextInput
                             style={styles.gratitudeInput}
-                            placeholder="예: 맛있는 점심을 먹을 수 있어서 감사해요"
+                            placeholder="아침에 눈을 뜰 수 있었던 것, 따뜻한 햇살, 맛있는 커피 한 잔... 작은 것부터 시작해보세요 ✨"
                             value={gratitudeText}
                             onChangeText={setGratitudeText}
                             multiline
@@ -239,7 +273,7 @@ export default function DiaryScreen() {
                     </View>
                 </View>
             </Modal>
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -253,26 +287,32 @@ const styles = StyleSheet.create({
     },
     content: {
         padding: Spacing.lg,
-        paddingTop: Spacing.xxl + Spacing.lg,
-    },
-    header: {
-        marginBottom: Spacing.lg,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
     },
     viewToggle: {
         flexDirection: 'row',
     },
-    title: {
-        fontSize: FontSize.xxl,
-        fontWeight: 'bold',
-        color: Colors.text,
+    effectBanner: {
+        flexDirection: 'row',
+        backgroundColor: Colors.primary + '10',
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.md,
+        marginBottom: Spacing.lg,
+        alignItems: 'flex-start',
     },
-    subtitle: {
-        fontSize: FontSize.md,
+    effectTextContainer: {
+        flex: 1,
+        marginLeft: Spacing.sm,
+    },
+    effectTitle: {
+        fontSize: FontSize.sm,
+        fontWeight: '700',
+        color: Colors.primary,
+        marginBottom: 4,
+    },
+    effectDescription: {
+        fontSize: FontSize.xs,
         color: Colors.textSecondary,
-        marginTop: Spacing.xs,
+        lineHeight: 18,
     },
     todaySection: {
         backgroundColor: Colors.surface,
@@ -287,8 +327,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    todayEmoji: {
-        fontSize: 40,
+    todayIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: Colors.surfaceVariant,
+        alignItems: 'center',
+        justifyContent: 'center',
         marginRight: Spacing.md,
     },
     todayTextContainer: {
@@ -312,8 +357,13 @@ const styles = StyleSheet.create({
         padding: Spacing.lg,
         marginBottom: Spacing.lg,
     },
-    recordedEmoji: {
-        fontSize: 32,
+    recordedIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: Colors.success + '15',
+        alignItems: 'center',
+        justifyContent: 'center',
         marginRight: Spacing.md,
     },
     recordedInfo: {
@@ -322,7 +372,7 @@ const styles = StyleSheet.create({
     recordedTitle: {
         fontSize: FontSize.sm,
         fontWeight: '600',
-        color: Colors.primary,
+        color: Colors.success,
         marginBottom: 4,
     },
     recordedContent: {
@@ -380,8 +430,11 @@ const styles = StyleSheet.create({
         color: Colors.primary,
         fontWeight: 'bold',
     },
-    dayEmoji: {
-        fontSize: 12,
+    dayDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: Colors.primary,
         marginTop: 2,
     },
     legendContainer: {
@@ -396,13 +449,41 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    legendEmoji: {
-        fontSize: 14,
-        marginRight: 4,
+    legendDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: Colors.primary,
+        marginRight: 6,
     },
     legendText: {
         fontSize: FontSize.xs,
         color: Colors.textSecondary,
+    },
+    listSection: {
+        minHeight: 200,
+    },
+    listItem: {
+        backgroundColor: Colors.surface,
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.lg,
+        marginBottom: Spacing.md,
+    },
+    listHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: Spacing.sm,
+    },
+    listDate: {
+        fontSize: FontSize.sm,
+        color: Colors.primary,
+        fontWeight: '600',
+    },
+    listContent: {
+        fontSize: FontSize.md,
+        color: Colors.text,
+        lineHeight: 22,
     },
     modalOverlay: {
         flex: 1,
@@ -452,51 +533,5 @@ const styles = StyleSheet.create({
     },
     modalButton: {
         flex: 1,
-    },
-    listSection: {
-        // marginTop: Spacing.md,
-    },
-    listItem: {
-        backgroundColor: Colors.surface,
-        borderRadius: BorderRadius.lg,
-        padding: Spacing.lg,
-        marginBottom: Spacing.md,
-    },
-    listHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: Spacing.sm,
-    },
-    listDate: {
-        fontSize: FontSize.sm,
-        color: Colors.primary,
-        fontWeight: '600',
-    },
-    listEmoji: {
-        fontSize: 18,
-    },
-    listContent: {
-        fontSize: FontSize.md,
-        color: Colors.text,
-        lineHeight: 22,
-    },
-    emptyState: {
-        alignItems: 'center',
-        paddingVertical: Spacing.xxl,
-    },
-    emptyEmoji: {
-        fontSize: 48,
-        marginBottom: Spacing.md,
-    },
-    emptyTitle: {
-        fontSize: FontSize.lg,
-        fontWeight: '600',
-        color: Colors.text,
-        marginBottom: Spacing.xs,
-    },
-    emptyDesc: {
-        fontSize: FontSize.md,
-        color: Colors.textSecondary,
     },
 });
