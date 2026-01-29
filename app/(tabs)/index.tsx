@@ -177,28 +177,6 @@ export default function HomeScreen() {
                     </Text>
                 </View>
 
-                {/* 퀵 액션 */}
-                <View style={styles.quickActions}>
-                    <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/(tabs)/archive')}>
-                        <View style={styles.quickActionIcon}>
-                            <Ionicons name="mail-outline" size={22} color={Colors.primary} />
-                        </View>
-                        <Text style={styles.quickActionLabel}>보관함</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/(tabs)/diary')}>
-                        <View style={styles.quickActionIcon}>
-                            <Ionicons name="book-outline" size={22} color={Colors.primary} />
-                        </View>
-                        <Text style={styles.quickActionLabel}>감사일기</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/(tabs)/settings')}>
-                        <View style={styles.quickActionIcon}>
-                            <Ionicons name="settings-outline" size={22} color={Colors.primary} />
-                        </View>
-                        <Text style={styles.quickActionLabel}>설정</Text>
-                    </TouchableOpacity>
-                </View>
-
                 <View style={{ height: Spacing.xl }} />
             </ScrollView>
         </SafeAreaView>
@@ -267,11 +245,13 @@ const styles = StyleSheet.create({
     cardGradient: {
         padding: Spacing.lg,
         borderRadius: BorderRadius.xl,
+        minHeight: 200, // 카드 높이 최소값 추가하여 강조
+        justifyContent: 'space-between',
     },
     tagRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: Spacing.sm,
+        marginBottom: Spacing.md,
     },
     tag: {
         backgroundColor: Colors.primary,
@@ -288,11 +268,11 @@ const styles = StyleSheet.create({
         fontSize: 20,
     },
     messageText: {
-        fontSize: FontSize.lg,
-        fontWeight: '500',
+        fontSize: FontSize.xl, // 폰트 크기 키움
+        fontWeight: '600', // 굵기 강조
         color: Colors.text,
-        lineHeight: 28,
-        marginBottom: Spacing.md,
+        lineHeight: 32, // 줄간격 조정
+        marginBottom: Spacing.xl,
     },
     cardFooter: {
         flexDirection: 'row',
@@ -302,13 +282,14 @@ const styles = StyleSheet.create({
     shareBtn: {
         flexDirection: 'row',
         alignItems: 'center',
+        padding: Spacing.sm, // 터치 영역 확대
     },
     shareIcon: {
-        fontSize: 16,
+        fontSize: 20, // 아이콘 크기 확대
         marginRight: Spacing.xs,
     },
     shareText: {
-        fontSize: FontSize.sm,
+        fontSize: FontSize.md, // 텍스트 크기 확대
         color: Colors.textSecondary,
     },
     pingNumber: {
@@ -375,34 +356,5 @@ const styles = StyleSheet.create({
         fontSize: FontSize.sm,
         color: Colors.textSecondary,
         lineHeight: 22,
-    },
-    quickActions: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: Spacing.md,
-    },
-    quickAction: {
-        flex: 1,
-        alignItems: 'center',
-        paddingVertical: Spacing.md,
-        marginHorizontal: Spacing.xs,
-        backgroundColor: Colors.surface,
-        borderRadius: BorderRadius.lg,
-        borderWidth: 1,
-        borderColor: Colors.border,
-    },
-    quickActionIcon: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: Colors.primary + '15',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: Spacing.sm,
-    },
-    quickActionLabel: {
-        fontSize: FontSize.xs,
-        color: Colors.textSecondary,
-        fontWeight: '500',
     },
 });
