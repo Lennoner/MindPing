@@ -2,43 +2,73 @@ import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants';
-import { SAMPLE_MESSAGES } from '../../src/constants/data';
+import { useMessageStore, Message } from '../../src/stores/messageStore';
+
+// 날짜 포맷팅 함수
+const formatDate = (date: Date): string => {
+    const d = new Date(date);
+    return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+};
+
+// 오늘인지 확인
+const isToday = (date: Date): boolean => {
+    const d = new Date(date);
+    const today = new Date();
+    return d.toDateString() === today.toDateString();
+};
+
+// 카테고리별 이모지
+const getCategoryEmoji = (category: Message['category']): string => {
+    switch (category) {
+        case 'comfort': return '💜';
+        case 'acceptance': return '🤗';
+        case 'encouragement': return '💪';
+        case 'info': return '💡';
+        default: return '✨';
+    }
+};
 
 export default function ArchiveScreen() {
-    const archiveMessages = [
-        { ...SAMPLE_MESSAGES[0], date: '1월 26일', isToday: true },
-        { ...SAMPLE_MESSAGES[1], date: '1월 25일', isToday: false },
-        { ...SAMPLE_MESSAGES[2], date: '1월 24일', isToday: false },
-        { ...SAMPLE_MESSAGES[3], date: '1월 23일', isToday: false },
-    ];
+    const messages = useMessageStore((state) => state.messages);
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>보관함</Text>
+                <Text style={styles.headerCount}>{messages.length}개의 메시지</Text>
             </View>
 
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-                {archiveMessages.map((message, index) => (
-                    <View key={index} style={styles.cardContainer}>
-                        {/* 왼쪽 라인 */}
-                        <View style={[
-                            styles.leftLine,
-                            { backgroundColor: getLineColor(index) }
-                        ]} />
-
-                        <View style={styles.card}>
-                            <View style={styles.dateRow}>
-                                <Text style={styles.date}>{message.date}</Text>
-                                {message.isToday && <Text style={styles.todayLabel}>오늘</Text>}
-                            </View>
-
-                            <Text style={styles.emoji}>{message.emoji}</Text>
-
-                            <Text style={styles.content}>{message.content}</Text>
-                        </View>
+                {messages.length === 0 ? (
+                    <View style={styles.emptyState}>
+                        <Text style={styles.emptyEmoji}>📭</Text>
+                        <Text style={styles.emptyTitle}>아직 받은 메시지가 없어요</Text>
+                        <Text style={styles.emptyDescription}>
+                            홈 화면에서 오늘의 메시지를 확인하면{'\n'}여기에 자동으로 저장돼요
+                        </Text>
                     </View>
-                ))}
+                ) : (
+                    messages.map((message, index) => (
+                        <View key={message.id} style={styles.cardContainer}>
+                            {/* 왼쪽 라인 */}
+                            <View style={[
+                                styles.leftLine,
+                                { backgroundColor: getLineColor(index) }
+                            ]} />
+
+                            <View style={styles.card}>
+                                <View style={styles.dateRow}>
+                                    <Text style={styles.date}>{formatDate(message.receivedAt)}</Text>
+                                    {isToday(message.receivedAt) && <Text style={styles.todayLabel}>오늘</Text>}
+                                </View>
+
+                                <Text style={styles.emoji}>{getCategoryEmoji(message.category)}</Text>
+
+                                <Text style={styles.content}>{message.content}</Text>
+                            </View>
+                        </View>
+                    ))
+                )}
                 <View style={{ height: 20 }} />
             </ScrollView>
         </SafeAreaView>
@@ -65,6 +95,11 @@ const styles = StyleSheet.create({
         fontSize: FontSize.lg,
         fontWeight: '700',
         color: Colors.text,
+    },
+    headerCount: {
+        fontSize: FontSize.sm,
+        color: Colors.textSecondary,
+        marginTop: Spacing.xs,
     },
     scrollView: {
         flex: 1,
@@ -129,5 +164,27 @@ const styles = StyleSheet.create({
         lineHeight: 24,
         fontWeight: '500',
         marginTop: Spacing.xs,
+    },
+    emptyState: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 80,
+    },
+    emptyEmoji: {
+        fontSize: 48,
+        marginBottom: Spacing.lg,
+    },
+    emptyTitle: {
+        fontSize: FontSize.lg,
+        fontWeight: '600',
+        color: Colors.text,
+        marginBottom: Spacing.sm,
+    },
+    emptyDescription: {
+        fontSize: FontSize.md,
+        color: Colors.textSecondary,
+        textAlign: 'center',
+        lineHeight: 22,
     },
 });

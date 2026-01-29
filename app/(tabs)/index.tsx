@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants';
 import { SAMPLE_MESSAGES } from '../../src/constants/data';
 import { useUserStore } from '../../src/stores/userStore';
+import { useMessageStore } from '../../src/stores/messageStore';
 
 // 날짜 기반 시드로 같은 날에는 같은 메시지 표시
 const getDailyMessageIndex = (date: Date): number => {
@@ -25,7 +26,8 @@ const getMessageTypeLabel = (type: string): string => {
 
 export default function HomeScreen() {
     const router = useRouter();
-    const { user } = useUserStore();
+    const { user, lastMessageId, setLastMessage } = useUserStore();
+    const { setTodayMessage } = useMessageStore();
     const today = new Date();
     const month = today.getMonth() + 1;
     const day = today.getDate();
@@ -40,6 +42,27 @@ export default function HomeScreen() {
         const index = getDailyMessageIndex(today);
         return SAMPLE_MESSAGES[index];
     }, [today.toDateString()]);
+
+    // 오늘의 메시지를 히스토리에 저장 (날짜별 한 번만)
+    const todayDateString = today.toDateString();
+    useEffect(() => {
+        const messageIdForToday = `msg-${todayDateString}`;
+        if (lastMessageId !== messageIdForToday) {
+            const categoryMap: Record<string, 'comfort' | 'acceptance' | 'encouragement' | 'info'> = {
+                comfort: 'comfort',
+                wisdom: 'encouragement',
+                question: 'acceptance',
+            };
+            setTodayMessage({
+                id: messageIdForToday,
+                content: todayMessage.content,
+                category: categoryMap[todayMessage.type] || 'comfort',
+                receivedAt: new Date(),
+                isRead: true,
+            });
+            setLastMessage(messageIdForToday, todayMessage.type as 'comfort' | 'wisdom' | 'question');
+        }
+    }, [todayDateString, todayMessage, lastMessageId, setTodayMessage, setLastMessage]);
 
     const userName = user?.nickname || '사용자';
 

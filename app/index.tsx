@@ -3,10 +3,12 @@ import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { Colors, FontSize } from '../src/constants';
+import { useUserStore } from '../src/stores/userStore';
 
 export default function SplashScreen() {
     const router = useRouter();
     const [isReady, setIsReady] = useState(false);
+    const isOnboarded = useUserStore((state) => state.isOnboarded);
 
     useEffect(() => {
         // 1초 뒤에 준비 상태로 변경
@@ -20,13 +22,17 @@ export default function SplashScreen() {
     useEffect(() => {
         if (!isReady) return;
 
-        // 준비되면 온보딩으로 이동
+        // 준비되면 온보딩 여부에 따라 이동
         const navigationTimer = setTimeout(() => {
-            router.replace('/onboarding');
+            if (isOnboarded) {
+                router.replace('/(tabs)');
+            } else {
+                router.replace('/onboarding');
+            }
         }, 1000);
 
         return () => clearTimeout(navigationTimer);
-    }, [isReady, router]);
+    }, [isReady, isOnboarded, router]);
 
     return (
         <View style={styles.container}>
