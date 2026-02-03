@@ -14,7 +14,7 @@
     "babel-preset-expo": "~54.0.10",
     "date-fns": "^4.1.0",
     "expo": "~54.0.32",
-    "expo-clipboard": "^8.0.8",
+    "expo-clipboard": "~8.0.8",
     "expo-constants": "~18.0.13",
     "expo-device": "~8.0.10",
     "expo-linear-gradient": "~15.0.8",

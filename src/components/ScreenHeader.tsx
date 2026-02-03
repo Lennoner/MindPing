@@ -5,31 +5,26 @@ import { Colors, Spacing, FontSize } from '../constants';
 
 interface ScreenHeaderProps {
     title: string | React.ReactNode;
-    subtitle?: string;
     rightAction?: React.ReactNode;
-    showBorder?: boolean;
 }
 
 /**
  * 통일된 화면 헤더 컴포넌트
- * 일기, 보관함, 설정 등 화면에서 사용
+ * - 고정 높이 56px
+ * - 타이틀만 표시 (소제목 제거로 일관성 확보)
+ * - 우측 액션 영역
  */
 export function ScreenHeader({
     title,
-    subtitle,
     rightAction,
-    showBorder = false
 }: ScreenHeaderProps) {
     return (
-        <View style={[styles.container, showBorder && styles.withBorder]}>
-            <View style={styles.textContainer}>
+        <View style={styles.container}>
+            <View style={styles.titleContainer}>
                 {typeof title === 'string' ? (
                     <Text style={styles.title}>{title}</Text>
                 ) : (
                     title
-                )}
-                {subtitle && (
-                    <Text style={styles.subtitle}>{subtitle}</Text>
                 )}
             </View>
             {rightAction && (
@@ -43,31 +38,25 @@ export function ScreenHeader({
 
 const styles = StyleSheet.create({
     container: {
+        height: 56,
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
+        justifyContent: 'space-between',
         paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
+        backgroundColor: Colors.background,
     },
-    withBorder: {
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
-    },
-    textContainer: {
+    titleContainer: {
         flex: 1,
+        justifyContent: 'center',
     },
     title: {
-        fontSize: FontSize.xl, // 20 or 24
+        fontSize: FontSize.xl,
         fontWeight: '700',
         color: Colors.text,
-    },
-    subtitle: {
-        fontSize: FontSize.sm,
-        color: Colors.textSecondary,
-        marginTop: 4,
     },
     rightAction: {
         flexDirection: 'row',
         alignItems: 'center',
+        marginLeft: Spacing.sm,
     },
 });

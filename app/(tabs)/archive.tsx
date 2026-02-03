@@ -13,7 +13,6 @@ export default function ArchiveScreen() {
     const { messages, toggleFavorite } = useMessageStore();
     const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
-    // 메시지가 있으면 실제 데이터 사용, 없으면 빈 배열
     const archiveMessages = messages
         .filter(msg => !showFavoritesOnly || msg.isFavorite)
         .map((msg) => {
@@ -21,7 +20,6 @@ export default function ArchiveScreen() {
             const today = new Date();
             const isToday = receivedDate.toDateString() === today.toDateString();
 
-            // SAMPLE_MESSAGES에서 해당 메시지의 emoji 찾기
             const originalMessage = SAMPLE_MESSAGES.find(m => m.id === msg.id);
             const emoji = originalMessage?.emoji || '💜';
 
@@ -33,7 +31,6 @@ export default function ArchiveScreen() {
             };
         });
 
-    // 카테고리 기반 라인 색상
     const getLineColor = (index: number) => {
         const colors = [
             Colors.categoryQuestion,
@@ -44,7 +41,7 @@ export default function ArchiveScreen() {
         return colors[index % colors.length];
     };
 
-    // 필터 토글 버튼
+    // 필터 토글 버튼 (통일된 스타일)
     const FilterButton = (
         <TouchableOpacity
             style={[styles.filterButton, showFavoritesOnly && styles.filterButtonActive]}
@@ -55,22 +52,24 @@ export default function ArchiveScreen() {
                 size={18}
                 color={showFavoritesOnly ? Colors.white : Colors.primary}
             />
-            <Text style={[styles.filterButtonText, showFavoritesOnly && styles.filterButtonTextActive]}>
-                즐겨찾기
-            </Text>
         </TouchableOpacity>
     );
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            {/* 통일된 헤더 */}
             <ScreenHeader
                 title="보관함"
-                subtitle={`받은 메시지 ${messages.length}개`}
                 rightAction={FilterButton}
             />
 
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                {/* 메시지 개수 표시 */}
+                <View style={styles.countBadge}>
+                    <Text style={styles.countText}>
+                        {showFavoritesOnly ? '즐겨찾기' : '받은 메시지'} {archiveMessages.length}개
+                    </Text>
+                </View>
+
                 {archiveMessages.length === 0 ? (
                     <EmptyState
                         icon={showFavoritesOnly ? 'heart-outline' : 'mail-open-outline'}
@@ -80,7 +79,6 @@ export default function ArchiveScreen() {
                 ) : (
                     archiveMessages.map((message, index) => (
                         <View key={message.id || index} style={styles.cardContainer}>
-                            {/* 왼쪽 라인 */}
                             <View style={[
                                 styles.leftLine,
                                 { backgroundColor: getLineColor(index) }
@@ -92,14 +90,13 @@ export default function ArchiveScreen() {
                                     {message.isToday && <Text style={styles.todayLabel}>오늘</Text>}
                                 </View>
 
-                                {/* 즐겨찾기 버튼 */}
                                 <TouchableOpacity
                                     style={styles.favoriteButton}
                                     onPress={() => toggleFavorite(message.id)}
                                 >
                                     <Ionicons
                                         name={message.isFavorite ? 'heart' : 'heart-outline'}
-                                        size={22}
+                                        size={20}
                                         color={message.isFavorite ? Colors.primary : Colors.textTertiary}
                                     />
                                 </TouchableOpacity>
@@ -125,31 +122,28 @@ const styles = StyleSheet.create({
         padding: Spacing.lg,
     },
     filterButton: {
-        flexDirection: 'row',
+        width: 40,
+        height: 40,
         alignItems: 'center',
-        paddingVertical: Spacing.xs,
-        paddingHorizontal: Spacing.md,
-        borderRadius: BorderRadius.full,
-        borderWidth: 1,
-        borderColor: Colors.primary,
-        backgroundColor: 'transparent',
+        justifyContent: 'center',
+        borderRadius: 20,
+        backgroundColor: Colors.surfaceVariant,
     },
     filterButtonActive: {
         backgroundColor: Colors.primary,
     },
-    filterButtonText: {
-        fontSize: FontSize.xs,
-        color: Colors.primary,
-        fontWeight: '600',
-        marginLeft: 4,
+    countBadge: {
+        marginBottom: Spacing.md,
     },
-    filterButtonTextActive: {
-        color: Colors.white,
+    countText: {
+        fontSize: FontSize.sm,
+        color: Colors.textSecondary,
+        fontWeight: '500',
     },
     cardContainer: {
         flexDirection: 'row',
-        marginBottom: Spacing.lg,
-        minHeight: 120,
+        marginBottom: Spacing.md,
+        minHeight: 100,
     },
     leftLine: {
         width: 4,
@@ -170,17 +164,16 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 0,
         borderBottomLeftRadius: 0,
 
-        // Shadow
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+        elevation: 1,
     },
     dateRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: Spacing.md,
+        marginBottom: Spacing.sm,
     },
     date: {
         fontSize: FontSize.xs,
@@ -202,9 +195,8 @@ const styles = StyleSheet.create({
     content: {
         fontSize: FontSize.md,
         color: Colors.text,
-        lineHeight: 24,
+        lineHeight: 22,
         fontWeight: '500',
-        marginTop: Spacing.xs,
         paddingRight: Spacing.xl,
     },
 });

@@ -46,12 +46,10 @@ export default function DiaryScreen() {
 
         const days = [];
 
-        // 빈 칸
         for (let i = 0; i < firstDay; i++) {
             days.push({ date: null, hasEntry: false });
         }
 
-        // 날짜
         for (let i = 1; i <= lastDate; i++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
             const entry = entries.find(e => e.date === dateStr);
@@ -73,36 +71,46 @@ export default function DiaryScreen() {
         });
     };
 
-    // 헤더 우측 토글 버튼
+    // 헤더 우측 토글 버튼 (통일된 스타일)
     const ViewToggle = (
         <View style={styles.viewToggle}>
-            <IconButton
-                icon={viewMode === 'calendar' ? 'calendar' : 'calendar-outline'}
-                selected={viewMode === 'calendar'}
+            <TouchableOpacity
+                style={[styles.toggleBtn, viewMode === 'calendar' && styles.toggleBtnActive]}
                 onPress={() => setViewMode('calendar')}
-            />
-            <IconButton
-                icon={viewMode === 'list' ? 'list' : 'list-outline'}
-                selected={viewMode === 'list'}
+            >
+                <Ionicons
+                    name="calendar-outline"
+                    size={18}
+                    color={viewMode === 'calendar' ? Colors.white : Colors.textSecondary}
+                />
+            </TouchableOpacity>
+            <TouchableOpacity
+                style={[styles.toggleBtn, viewMode === 'list' && styles.toggleBtnActive]}
                 onPress={() => setViewMode('list')}
-            />
+            >
+                <Ionicons
+                    name="list-outline"
+                    size={18}
+                    color={viewMode === 'list' ? Colors.white : Colors.textSecondary}
+                />
+            </TouchableOpacity>
         </View>
     );
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            {/* 통일된 헤더 */}
             <ScreenHeader
                 title="감사 일기"
-                subtitle="오늘 감사한 일을 기록해보세요"
                 rightAction={ViewToggle}
             />
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-                {/* 감사일기 효과 설명 배너 (처음 사용자에게만 또는 기록이 없을 때) */}
+                {/* 감사일기 효과 설명 배너 */}
                 {entries.length < 3 && (
                     <View style={styles.effectBanner}>
-                        <Ionicons name="sparkles" size={20} color={Colors.primary} />
+                        <View style={styles.effectIconContainer}>
+                            <Ionicons name="sparkles" size={18} color={Colors.primary} />
+                        </View>
                         <View style={styles.effectTextContainer}>
                             <Text style={styles.effectTitle}>감사 일기의 힘</Text>
                             <Text style={styles.effectDescription}>
@@ -137,28 +145,34 @@ export default function DiaryScreen() {
                                 {todayEntry.content}
                             </Text>
                         </View>
-                        <TouchableOpacity onPress={() => handleOpenModal(todayEntry.content)}>
-                            <Text style={styles.editButton}>수정</Text>
+                        <TouchableOpacity
+                            style={styles.editBtn}
+                            onPress={() => handleOpenModal(todayEntry.content)}
+                        >
+                            <Ionicons name="pencil-outline" size={16} color={Colors.primary} />
                         </TouchableOpacity>
                     </View>
                 )}
-
 
                 {/* 달력 또는 리스트 */}
                 {viewMode === 'calendar' ? (
                     <View style={styles.calendarSection}>
                         <View style={styles.calendarHeader}>
-                            <IconButton
-                                icon="chevron-back"
+                            <TouchableOpacity
+                                style={styles.monthNavBtn}
                                 onPress={() => changeMonth(-1)}
-                            />
+                            >
+                                <Ionicons name="chevron-back" size={20} color={Colors.text} />
+                            </TouchableOpacity>
                             <Text style={styles.calendarTitle}>
                                 {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
                             </Text>
-                            <IconButton
-                                icon="chevron-forward"
+                            <TouchableOpacity
+                                style={styles.monthNavBtn}
                                 onPress={() => changeMonth(1)}
-                            />
+                            >
+                                <Ionicons name="chevron-forward" size={20} color={Colors.text} />
+                            </TouchableOpacity>
                         </View>
 
                         <View style={styles.weekDays}>
@@ -290,18 +304,40 @@ const styles = StyleSheet.create({
     },
     viewToggle: {
         flexDirection: 'row',
+        backgroundColor: Colors.surfaceVariant,
+        borderRadius: BorderRadius.md,
+        padding: 2,
+    },
+    toggleBtn: {
+        width: 36,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: BorderRadius.sm,
+    },
+    toggleBtnActive: {
+        backgroundColor: Colors.primary,
     },
     effectBanner: {
         flexDirection: 'row',
-        backgroundColor: Colors.primary + '10',
+        backgroundColor: Colors.primary + '08',
         borderRadius: BorderRadius.lg,
         padding: Spacing.md,
         marginBottom: Spacing.lg,
-        alignItems: 'flex-start',
+        borderWidth: 1,
+        borderColor: Colors.primary + '15',
+    },
+    effectIconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: Colors.primary + '15',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: Spacing.md,
     },
     effectTextContainer: {
         flex: 1,
-        marginLeft: Spacing.sm,
     },
     effectTitle: {
         fontSize: FontSize.sm,
@@ -331,7 +367,7 @@ const styles = StyleSheet.create({
         width: 48,
         height: 48,
         borderRadius: 24,
-        backgroundColor: Colors.surfaceVariant,
+        backgroundColor: Colors.primary + '10',
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: Spacing.md,
@@ -340,14 +376,14 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     sectionTitle: {
-        fontSize: FontSize.lg,
+        fontSize: FontSize.md,
         fontWeight: '600',
         color: Colors.text,
     },
     todayHint: {
         fontSize: FontSize.sm,
         color: Colors.textSecondary,
-        marginTop: 4,
+        marginTop: 2,
     },
     todayRecorded: {
         flexDirection: 'row',
@@ -385,11 +421,13 @@ const styles = StyleSheet.create({
         color: Colors.text,
         lineHeight: 22,
     },
-    editButton: {
-        fontSize: FontSize.sm,
-        color: Colors.primary,
-        fontWeight: '600',
-        padding: Spacing.xs,
+    editBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: Colors.primary + '10',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     calendarSection: {
         backgroundColor: Colors.surface,
@@ -400,9 +438,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        marginBottom: Spacing.sm,
+    },
+    monthNavBtn: {
+        width: 36,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 18,
+        backgroundColor: Colors.surfaceVariant,
     },
     calendarTitle: {
-        fontSize: FontSize.lg,
+        fontSize: FontSize.md,
         fontWeight: '600',
         color: Colors.text,
     },

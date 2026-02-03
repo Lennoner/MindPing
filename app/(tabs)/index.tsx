@@ -17,7 +17,7 @@ export default function HomeScreen() {
     const router = useRouter();
     const { user } = useUserStore();
     const { todayMessage, setTodayMessage } = useMessageStore();
-    const { getEntryByDate } = useDiaryStore();
+    const { getEntryByDate, entries } = useDiaryStore();
 
     const today = new Date();
     const hour = today.getHours();
@@ -27,22 +27,18 @@ export default function HomeScreen() {
     const todayDateStr = today.toISOString().split('T')[0];
     const hasTodayEntry = !!getEntryByDate(todayDateStr);
 
-    // 오늘의 메시지가 없으면 랜덤으로 하나 선택
     const [displayMessage, setDisplayMessage] = useState<MessageData | null>(null);
 
     useEffect(() => {
         if (todayMessage) {
-            // messageStore에 오늘의 메시지가 있으면 그것을 사용
             const foundMessage = SAMPLE_MESSAGES.find(m => m.id === todayMessage.id);
             if (foundMessage) {
                 setDisplayMessage(foundMessage);
             } else {
-                // 못찾으면 랜덤 선택
                 const randomIndex = Math.floor(Math.random() * SAMPLE_MESSAGES.length);
                 setDisplayMessage(SAMPLE_MESSAGES[randomIndex]);
             }
         } else {
-            // 오늘의 메시지가 없으면 랜덤으로 하나 선택하고 저장
             const randomIndex = Math.floor(Math.random() * SAMPLE_MESSAGES.length);
             const selectedMessage = SAMPLE_MESSAGES[randomIndex];
             setDisplayMessage(selectedMessage);
@@ -97,10 +93,10 @@ export default function HomeScreen() {
         return null;
     }
 
-    // 헤더 우측 알림 버튼
+    // 헤더 우측 알림 버튼 (통일된 40x40 사이즈)
     const NotificationAction = (
         <TouchableOpacity style={styles.headerIconBtn} onPress={handleNotificationPress}>
-            <Ionicons name="notifications-outline" size={24} color={Colors.text} />
+            <Ionicons name="notifications-outline" size={22} color={Colors.text} />
         </TouchableOpacity>
     );
 
@@ -118,7 +114,7 @@ export default function HomeScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            {/* 통일된 헤더 + 로고 */}
+            {/* 통일된 헤더 */}
             <ScreenHeader
                 title={HeaderTitle}
                 rightAction={NotificationAction}
@@ -138,17 +134,14 @@ export default function HomeScreen() {
                         colors={[Colors.messageCardGradientStart, Colors.messageCardGradientEnd]}
                         style={styles.cardGradient}
                     >
-                        {/* 메시지 타입 태그 */}
                         <View style={styles.tagRow}>
                             <View style={[styles.tag, { backgroundColor: getTagColor(displayMessage.type) }]}>
                                 <Text style={styles.tagText}>{getTagLabel(displayMessage.type)}</Text>
                             </View>
                         </View>
 
-                        {/* 메시지 내용 */}
                         <Text style={styles.messageText}>{displayMessage.content}</Text>
 
-                        {/* 하단 영역 */}
                         <View style={styles.cardFooter}>
                             <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
                                 <Ionicons name="share-outline" size={16} color={Colors.primary} />
@@ -180,6 +173,25 @@ export default function HomeScreen() {
                         />
                     </View>
                 </TouchableOpacity>
+
+                {/* 감사 일기의 힘 배너 (기록 3개 미만일 때만) */}
+                {entries.length < 3 && (
+                    <View style={styles.tipBanner}>
+                        <View style={styles.tipIconContainer}>
+                            <Ionicons name="sparkles" size={20} color={Colors.primary} />
+                        </View>
+                        <View style={styles.tipContent}>
+                            <Text style={styles.tipTitle}>감사 일기의 힘</Text>
+                            <Text style={styles.tipDescription}>
+                                매일 감사한 일을 기록하면 행복감이 25% 증가하고,{'\n'}
+                                스트레스가 줄어든다는 연구 결과가 있어요.
+                            </Text>
+                        </View>
+                    </View>
+                )}
+
+                {/* 하단 여백 */}
+                <View style={{ height: Spacing.xl }} />
             </ScrollView>
         </SafeAreaView>
     );
@@ -199,15 +211,17 @@ const styles = StyleSheet.create({
         height: 40,
         alignItems: 'center',
         justifyContent: 'center',
+        borderRadius: 20,
+        backgroundColor: Colors.surfaceVariant,
     },
     headerTitleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     headerLogo: {
-        width: 24,
-        height: 24,
-        marginRight: 8,
+        width: 28,
+        height: 28,
+        marginRight: 10,
     },
     headerTitleText: {
         fontSize: FontSize.xl,
@@ -215,7 +229,7 @@ const styles = StyleSheet.create({
         color: Colors.text,
     },
     heroSection: {
-        marginTop: Spacing.sm,
+        marginTop: Spacing.md,
         marginBottom: Spacing.xl,
     },
     dateText: {
@@ -236,17 +250,16 @@ const styles = StyleSheet.create({
     },
     messageCard: {
         marginBottom: Spacing.md,
-        borderRadius: BorderRadius.lg,
+        borderRadius: BorderRadius.xl,
         overflow: 'hidden',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 4,
     },
     cardGradient: {
         padding: Spacing.lg,
-        borderRadius: BorderRadius.xl,
     },
     tagRow: {
         flexDirection: 'row',
@@ -260,7 +273,7 @@ const styles = StyleSheet.create({
         borderRadius: BorderRadius.full,
     },
     tagText: {
-        fontSize: FontSize.sm,
+        fontSize: FontSize.xs,
         color: Colors.white,
         fontWeight: '600',
     },
@@ -280,28 +293,25 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    shareIcon: {
-        fontSize: 16,
-        marginRight: Spacing.xs,
-    },
     shareText: {
         fontSize: FontSize.sm,
         color: Colors.textSecondary,
         marginLeft: 4,
     },
     pingNumber: {
-        fontSize: FontSize.sm,
+        fontSize: FontSize.xs,
         color: Colors.primary,
-        fontWeight: '500',
+        fontWeight: '600',
+        opacity: 0.8,
     },
     missionCard: {
         backgroundColor: Colors.primary,
         borderRadius: BorderRadius.lg,
-        padding: Spacing.md,
+        padding: Spacing.lg,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: Spacing.md,
+        marginBottom: Spacing.lg,
     },
     missionCardCompleted: {
         backgroundColor: Colors.missionCompleted,
@@ -315,7 +325,7 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.xs,
     },
     missionTitle: {
-        fontSize: FontSize.lg,
+        fontSize: FontSize.md,
         fontWeight: '600',
         color: Colors.white,
     },
@@ -326,5 +336,37 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    // 감사 일기의 힘 배너
+    tipBanner: {
+        flexDirection: 'row',
+        backgroundColor: Colors.primary + '08',
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.lg,
+        borderWidth: 1,
+        borderColor: Colors.primary + '15',
+    },
+    tipIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: Colors.primary + '15',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: Spacing.md,
+    },
+    tipContent: {
+        flex: 1,
+    },
+    tipTitle: {
+        fontSize: FontSize.sm,
+        fontWeight: '700',
+        color: Colors.primary,
+        marginBottom: 4,
+    },
+    tipDescription: {
+        fontSize: FontSize.xs,
+        color: Colors.textSecondary,
+        lineHeight: 18,
     },
 });
