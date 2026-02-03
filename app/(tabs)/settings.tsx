@@ -1,4 +1,4 @@
-import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert, Linking } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -8,6 +8,7 @@ import { useUserStore } from '../../src/stores/userStore';
 import { useMessageStore } from '../../src/stores/messageStore';
 import { useDiaryStore } from '../../src/stores/diaryStore';
 import { ScreenHeader } from '../../src/components';
+import * as Notifications from 'expo-notifications';
 
 export default function SettingsScreen() {
     const router = useRouter();
@@ -22,13 +23,7 @@ export default function SettingsScreen() {
 
     const handleMenuPress = (item: typeof menuItems[0]) => {
         if (item.isExternal) {
-            // 외부 링크는 추후 웹뷰나 브라우저 열기로 처리 가능 (현재는 일단 패스하거나 구현)
-            // 여기서는 간단히 router.push로 웹뷰 페이지를 열거나 해야 하지만, 
-            // 일단 로컬 파일이므로 별도 처리가 필요할 수 있음. 
-            // 편의상 알림 설정 외에는 기능이 없으므로 일단 둠.
-            // 실제 구현에서는 Linking.openURL 사용 추천.
-            const { Linking } = require('react-native');
-            Linking.openURL(item.path);
+            Linking.openURL(item.path!);
         } else if (item.path) {
             router.push(item.path as any);
         }
@@ -43,10 +38,13 @@ export default function SettingsScreen() {
                 {
                     text: "초기화",
                     style: "destructive",
-                    onPress: () => {
+                    onPress: async () => {
+                        // 모든 스토어 초기화
                         resetUser();
                         resetDiary();
                         resetMessages();
+                        // 예약된 알림 취소 (추가된 로직)
+                        await Notifications.cancelAllScheduledNotificationsAsync();
                         router.replace('/onboarding');
                     }
                 }
@@ -114,15 +112,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: Colors.white,
-    },
-    header: {
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
-    },
-    headerTitle: {
-        fontSize: FontSize.lg,
-        fontWeight: '700',
-        color: Colors.text,
     },
     content: {
         padding: Spacing.lg,
@@ -209,19 +198,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginRight: Spacing.md,
     },
-    menuIcon: {
-        fontSize: 14,
-        color: Colors.primary,
-    },
     menuLabel: {
         fontSize: FontSize.md,
         color: Colors.text,
         fontWeight: '500',
-    },
-    chevron: {
-        fontSize: 18,
-        color: Colors.textTertiary,
-        fontWeight: '300',
     },
     resetBtn: {
         backgroundColor: '#FFF0F0',

@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserStore } from '../src/stores';
 import { Colors, FontSize, Spacing, BorderRadius, ONBOARDING_SLIDES } from '../src/constants';
-import { registerForPushNotificationsAsync } from '../src/utils/notifications';
+import { registerForPushNotificationsAsync, scheduleRandomDailyMessage } from '../src/utils/notifications';
 
 const { width } = Dimensions.get('window');
 
@@ -33,6 +33,7 @@ export default function OnboardingScreen() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [notificationStatus, setNotificationStatus] = useState<'pending' | 'granted' | 'denied'>('pending');
     const [nickname, setNickname] = useState('');
+    const [showNicknameInput, setShowNicknameInput] = useState(false); // 추가된 상태
     const flatListRef = useRef<FlatList>(null);
     const scrollX = useRef(new Animated.Value(0)).current;
 
@@ -75,12 +76,19 @@ export default function OnboardingScreen() {
             flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
             setCurrentIndex(currentIndex + 1);
         } else {
+            // 마지막 슬라이드 후 닉네임 입력 화면 표시 (기존 HEAD 로직: 여기서는 handleStart 호출 또는 추가 입력)
+            // HEAD 로직 상 마지막은 알림권한이고, 그 다음은 없음. 그냥 handleStart 호출.
             handleStart();
         }
     };
 
-    const handleStart = () => {
+    const handleStart = async () => {
+        // 닉네임 저장 (입력하지 않으면 기본값)
+        const finalNickname = nickname.trim() || '사용자';
+        setUser({ nickname: finalNickname, createdAt: new Date() });
         setOnboarded(true);
+        // 기본 시간대로 알림 자동 스케줄링 (리뷰어 로직 병합)
+        await scheduleRandomDailyMessage(['forenoon', 'afternoon', 'evening']);
         router.replace('/(tabs)');
     };
 
@@ -292,9 +300,6 @@ const styles = StyleSheet.create({
     },
     illustrationWarning: {
         backgroundColor: Colors.warning + '15',
-    },
-    illustrationEmoji: {
-        fontSize: 80,
     },
     slideTitle: {
         fontSize: FontSize.xxl,

@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     title: {
-        fontSize: FontSize.xxl, // 수정됨: headline -> xxl
+        fontSize: FontSize.xxl,
         fontWeight: 'bold',
         color: '#FFFFFF',
         marginBottom: 8,

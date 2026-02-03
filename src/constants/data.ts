@@ -169,20 +169,3 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
         icon: 'shield-checkmark-outline',
     },
 ];
-
-// 감정 데이터
-export type EmotionType = 'good' | 'soso' | 'sad' | 'anxious' | 'angry';
-
-export interface EmotionOption {
-    type: EmotionType;
-    label: string;
-    emoji: string;
-}
-
-export const EMOTIONS: EmotionOption[] = [
-    { type: 'good', label: '좋음', emoji: '😊' },
-    { type: 'soso', label: '그저그럼', emoji: '😐' },
-    { type: 'sad', label: '슬픔', emoji: '😢' },
-    { type: 'anxious', label: '불안', emoji: '😰' },
-    { type: 'angry', label: '화남', emoji: '😡' },
-];

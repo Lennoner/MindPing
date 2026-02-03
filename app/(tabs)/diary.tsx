@@ -315,17 +315,17 @@ const styles = StyleSheet.create({
         lineHeight: 18,
     },
     todaySection: {
-        backgroundColor: Colors.surface,
-        borderRadius: BorderRadius.lg,
-        padding: Spacing.lg,
         marginBottom: Spacing.lg,
-        borderWidth: 2,
-        borderColor: Colors.primary + '30',
-        borderStyle: 'dashed',
     },
     todayPrompt: {
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: Colors.surface,
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.lg,
+        borderWidth: 2,
+        borderColor: Colors.primary + '30',
+        borderStyle: 'dashed',
     },
     todayIconContainer: {
         width: 48,
@@ -356,6 +356,11 @@ const styles = StyleSheet.create({
         borderRadius: BorderRadius.lg,
         padding: Spacing.lg,
         marginBottom: Spacing.lg,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
     },
     recordedIconContainer: {
         width: 40,
@@ -384,6 +389,7 @@ const styles = StyleSheet.create({
         fontSize: FontSize.sm,
         color: Colors.primary,
         fontWeight: '600',
+        padding: Spacing.xs,
     },
     calendarSection: {
         backgroundColor: Colors.surface,
@@ -528,10 +534,12 @@ const styles = StyleSheet.create({
     },
     modalButtons: {
         flexDirection: 'row',
-        gap: Spacing.md,
+        justifyContent: 'space-between',
         marginTop: Spacing.lg,
+        gap: Spacing.md,
     },
     modalButton: {
         flex: 1,
+        borderRadius: BorderRadius.md,
     },
 });
