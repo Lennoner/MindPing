@@ -68,7 +68,6 @@ export default function ArchiveScreen() {
                 title="보관함"
                 subtitle={`받은 메시지 ${messages.length}개`}
                 rightAction={FilterButton}
-                showBorder
             />
 
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>

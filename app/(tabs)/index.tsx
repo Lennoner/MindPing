@@ -10,6 +10,8 @@ import { SAMPLE_MESSAGES, MessageData } from '../../src/constants/data';
 import { useUserStore } from '../../src/stores/userStore';
 import { useMessageStore } from '../../src/stores/messageStore';
 import { useDiaryStore } from '../../src/stores/diaryStore';
+import { ScreenHeader } from '../../src/components';
+import { formatDateWithDay } from '../../src/utils';
 
 export default function HomeScreen() {
     const router = useRouter();
@@ -18,11 +20,6 @@ export default function HomeScreen() {
     const { getEntryByDate } = useDiaryStore();
 
     const today = new Date();
-    const month = today.getMonth() + 1;
-    const day = today.getDate();
-    const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
-    const dayName = dayNames[today.getDay()];
-
     const hour = today.getHours();
     const greeting = hour < 12 ? '좋은 아침이에요' : hour < 18 ? '좋은 오후예요' : '편안한 밤 되세요';
 
@@ -52,7 +49,7 @@ export default function HomeScreen() {
             setTodayMessage({
                 id: selectedMessage.id,
                 content: selectedMessage.content,
-                category: selectedMessage.type, // type이 이미 'question' | 'comfort' | 'wisdom'
+                category: selectedMessage.type as any,
                 receivedAt: new Date(),
                 isRead: false,
             });
@@ -100,21 +97,27 @@ export default function HomeScreen() {
         return null;
     }
 
+    // 헤더 우측 알림 버튼
+    const NotificationAction = (
+        <TouchableOpacity style={styles.headerIconBtn} onPress={handleNotificationPress}>
+            <Ionicons name="notifications-outline" size={24} color={Colors.text} />
+        </TouchableOpacity>
+    );
+
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
+            {/* 통일된 헤더 */}
+            <ScreenHeader
+                title="MindPing"
+                rightAction={NotificationAction}
+            />
+
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-                {/* 헤더 */}
-                <View style={styles.header}>
-                    <View>
-                        <Text style={styles.dateText}>{month}월 {day}일 {dayName}</Text>
-                        <View style={styles.greetingRow}>
-                            <Text style={styles.greeting}>{greeting},</Text>
-                        </View>
-                        <Text style={styles.userName}>{userName}님</Text>
-                    </View>
-                    <TouchableOpacity style={styles.notificationBtn} onPress={handleNotificationPress}>
-                        <Ionicons name="notifications-outline" size={24} color={Colors.textSecondary} />
-                    </TouchableOpacity>
+                {/* Hero Section (날짜/인사말) */}
+                <View style={styles.heroSection}>
+                    <Text style={styles.dateText}>{formatDateWithDay(today)}</Text>
+                    <Text style={styles.greeting}>{greeting},</Text>
+                    <Text style={styles.userName}>{userName}님</Text>
                 </View>
 
                 {/* 오늘의 메시지 카드 */}
@@ -165,19 +168,6 @@ export default function HomeScreen() {
                         />
                     </View>
                 </TouchableOpacity>
-
-                {/* 오늘의 팁 */}
-                <View style={styles.tipCard}>
-                    <View style={styles.tipHeader}>
-                        <Ionicons name="bulb-outline" size={20} color={Colors.warning} />
-                        <Text style={styles.tipLabel}>오늘의 팁</Text>
-                    </View>
-                    <Text style={styles.tipText}>
-                        하루 5분 감사 일기를 쓰면 행복감이 25% 증가한다는 연구가 있어요. 작은 것부터 시작해보세요.
-                    </Text>
-                </View>
-
-                <View style={{ height: Spacing.xl }} />
             </ScrollView>
         </SafeAreaView>
     );
@@ -192,45 +182,31 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingHorizontal: Spacing.lg,
     },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
+    headerIconBtn: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    heroSection: {
         marginTop: Spacing.sm,
-        marginBottom: Spacing.md,
+        marginBottom: Spacing.xl,
     },
     dateText: {
         fontSize: FontSize.sm,
         color: Colors.textSecondary,
         marginBottom: Spacing.xs,
     },
-    greetingRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
     greeting: {
         fontSize: FontSize.xxl,
         fontWeight: '700',
         color: Colors.text,
+        marginBottom: 2,
     },
     userName: {
         fontSize: FontSize.xxl,
         fontWeight: '700',
         color: Colors.primary,
-    },
-    notificationBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: Colors.white,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: Colors.border,
-    },
-    notificationIcon: {
-        fontSize: 20,
-        opacity: 0.6,
     },
     messageCard: {
         marginBottom: Spacing.md,
@@ -245,13 +221,11 @@ const styles = StyleSheet.create({
     cardGradient: {
         padding: Spacing.lg,
         borderRadius: BorderRadius.xl,
-        minHeight: 200, // 카드 높이 최소값 추가하여 강조
-        justifyContent: 'space-between',
     },
     tagRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: Spacing.md,
+        marginBottom: Spacing.sm,
     },
     tag: {
         backgroundColor: Colors.primary,
@@ -264,15 +238,12 @@ const styles = StyleSheet.create({
         color: Colors.white,
         fontWeight: '600',
     },
-    sparkle: {
-        fontSize: 20,
-    },
     messageText: {
-        fontSize: FontSize.xl, // 폰트 크기 키움
-        fontWeight: '600', // 굵기 강조
+        fontSize: FontSize.lg,
+        fontWeight: '500',
         color: Colors.text,
-        lineHeight: 32, // 줄간격 조정
-        marginBottom: Spacing.xl,
+        lineHeight: 28,
+        marginBottom: Spacing.md,
     },
     cardFooter: {
         flexDirection: 'row',
@@ -282,15 +253,15 @@ const styles = StyleSheet.create({
     shareBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: Spacing.sm, // 터치 영역 확대
     },
     shareIcon: {
-        fontSize: 20, // 아이콘 크기 확대
+        fontSize: 16,
         marginRight: Spacing.xs,
     },
     shareText: {
-        fontSize: FontSize.md, // 텍스트 크기 확대
+        fontSize: FontSize.sm,
         color: Colors.textSecondary,
+        marginLeft: 4,
     },
     pingNumber: {
         fontSize: FontSize.sm,
@@ -329,32 +300,5 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    missionEmoji: {
-        fontSize: 18,
-        color: Colors.white,
-        fontWeight: '600',
-    },
-    tipCard: {
-        backgroundColor: Colors.surfaceVariant,
-        borderRadius: BorderRadius.lg,
-        padding: Spacing.md,
-        marginBottom: Spacing.lg,
-    },
-    tipHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: Spacing.sm,
-    },
-    tipLabel: {
-        fontSize: FontSize.sm,
-        fontWeight: '600',
-        color: Colors.warning,
-        marginLeft: Spacing.xs,
-    },
-    tipText: {
-        fontSize: FontSize.sm,
-        color: Colors.textSecondary,
-        lineHeight: 22,
     },
 });
