@@ -4,7 +4,7 @@ import { Text } from 'react-native-paper';
 import { Colors, Spacing, FontSize } from '../constants';
 
 interface ScreenHeaderProps {
-    title: string;
+    title: string | React.ReactNode;
     subtitle?: string;
     rightAction?: React.ReactNode;
     showBorder?: boolean;
@@ -23,7 +23,11 @@ export function ScreenHeader({
     return (
         <View style={[styles.container, showBorder && styles.withBorder]}>
             <View style={styles.textContainer}>
-                <Text style={styles.title}>{title}</Text>
+                {typeof title === 'string' ? (
+                    <Text style={styles.title}>{title}</Text>
+                ) : (
+                    title
+                )}
                 {subtitle && (
                     <Text style={styles.subtitle}>{subtitle}</Text>
                 )}
@@ -53,7 +57,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     title: {
-        fontSize: FontSize.xl,
+        fontSize: FontSize.xl, // 20 or 24
         fontWeight: '700',
         color: Colors.text,
     },

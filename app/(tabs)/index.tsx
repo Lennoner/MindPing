@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Share } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Share, Image } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -104,11 +104,23 @@ export default function HomeScreen() {
         </TouchableOpacity>
     );
 
+    // 헤더 타이틀 (로고 + 텍스트)
+    const HeaderTitle = (
+        <View style={styles.headerTitleContainer}>
+            <Image
+                source={require('../../assets/header-logo.png')}
+                style={styles.headerLogo}
+                resizeMode="contain"
+            />
+            <Text style={styles.headerTitleText}>마음알림</Text>
+        </View>
+    );
+
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            {/* 통일된 헤더 */}
+            {/* 통일된 헤더 + 로고 */}
             <ScreenHeader
-                title="MindPing"
+                title={HeaderTitle}
                 rightAction={NotificationAction}
             />
 
@@ -187,6 +199,20 @@ const styles = StyleSheet.create({
         height: 40,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    headerTitleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    headerLogo: {
+        width: 24,
+        height: 24,
+        marginRight: 8,
+    },
+    headerTitleText: {
+        fontSize: FontSize.xl,
+        fontWeight: '700',
+        color: Colors.text,
     },
     heroSection: {
         marginTop: Spacing.sm,
