@@ -203,32 +203,33 @@ export default function HomeScreen() {
                     </View>
                 </TouchableOpacity>
 
-                {/* 통계 섹션 */}
+                {/* 통계 섹션 - 미니멀 디자인 */}
                 <View style={styles.statsSection}>
                     <View style={styles.statCard}>
-                        <Ionicons name="flame-outline" size={24} color={Colors.categoryComfort} />
                         <Text style={styles.statNumber}>{streakDays}</Text>
                         <Text style={styles.statLabel}>연속 기록</Text>
                     </View>
+                    <View style={styles.statDivider} />
                     <View style={styles.statCard}>
-                        <Ionicons name="heart-outline" size={24} color={Colors.primary} />
                         <Text style={styles.statNumber}>{totalEntries}</Text>
                         <Text style={styles.statLabel}>총 감사</Text>
                     </View>
+                    <View style={styles.statDivider} />
                     <View style={styles.statCard}>
-                        <Ionicons name="checkmark-circle-outline" size={24} color={Colors.success} />
-                        <Text style={styles.statNumber}>{hasTodayEntry ? '1' : '0'}</Text>
+                        <Text style={[styles.statNumber, hasTodayEntry && styles.statNumberActive]}>
+                            {hasTodayEntry ? 'O' : '-'}
+                        </Text>
                         <Text style={styles.statLabel}>오늘</Text>
                     </View>
                 </View>
 
-                {/* 오늘의 팁 */}
+                {/* 오늘의 팁 - 감사일기 배너 스타일 */}
                 <View style={styles.tipCard}>
-                    <View style={styles.tipHeader}>
-                        <Ionicons name="bulb-outline" size={18} color={Colors.categoryWisdom} />
+                    <Ionicons name="sparkles" size={18} color={Colors.primary} />
+                    <View style={styles.tipTextContainer}>
                         <Text style={styles.tipTitle}>오늘의 팁</Text>
+                        <Text style={styles.tipContent}>{todayTip}</Text>
                     </View>
-                    <Text style={styles.tipContent}>{todayTip}</Text>
                 </View>
 
                 <View style={{ height: Spacing.lg }} />
@@ -367,51 +368,56 @@ const styles = StyleSheet.create({
     },
     statsSection: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: Spacing.md,
-    },
-    statCard: {
-        flex: 1,
         backgroundColor: Colors.surface,
         borderRadius: BorderRadius.lg,
         padding: Spacing.md,
-        alignItems: 'center',
-        marginHorizontal: 4,
+        marginBottom: Spacing.md,
         borderWidth: 1,
         borderColor: Colors.cardBorder,
+        alignItems: 'center',
+    },
+    statCard: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    statDivider: {
+        width: 1,
+        height: 32,
+        backgroundColor: Colors.border,
     },
     statNumber: {
         fontSize: FontSize.xl,
         fontWeight: '700',
         color: Colors.text,
-        marginTop: Spacing.xs,
+    },
+    statNumberActive: {
+        color: Colors.primary,
     },
     statLabel: {
         fontSize: FontSize.xs,
         color: Colors.textSecondary,
-        marginTop: 2,
+        marginTop: 4,
     },
     tipCard: {
-        backgroundColor: Colors.categoryWisdom + '15',
+        flexDirection: 'row',
+        backgroundColor: Colors.primary + '10',
         borderRadius: BorderRadius.lg,
         padding: Spacing.md,
-        borderLeftWidth: 3,
-        borderLeftColor: Colors.categoryWisdom,
+        alignItems: 'flex-start',
     },
-    tipHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: Spacing.xs,
+    tipTextContainer: {
+        flex: 1,
+        marginLeft: Spacing.sm,
     },
     tipTitle: {
         fontSize: FontSize.sm,
-        fontWeight: '600',
-        color: Colors.categoryWisdom,
-        marginLeft: Spacing.xs,
+        fontWeight: '700',
+        color: Colors.primary,
+        marginBottom: 4,
     },
     tipContent: {
-        fontSize: FontSize.md,
-        color: Colors.text,
-        lineHeight: 22,
+        fontSize: FontSize.sm,
+        color: Colors.textSecondary,
+        lineHeight: 20,
     },
 });
