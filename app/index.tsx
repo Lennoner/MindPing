@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { Colors, FontSize } from '../src/constants';
@@ -37,10 +37,14 @@ export default function SplashScreen() {
     return (
         <View style={styles.container}>
             <View style={styles.logoContainer}>
-                <Text style={styles.emoji}>💜</Text>
+                <Image
+                    source={require('../assets/splash-icon.png')}
+                    style={styles.logoImage}
+                    resizeMode="contain"
+                />
                 <Text style={styles.title}>마음알림</Text>
                 <Text style={styles.subtitle}>예측할 수 없는 순간, 예상치 못한 위로</Text>
-                <ActivityIndicator size="small" color="#FFFFFF" style={{ marginTop: 20 }} />
+                <ActivityIndicator size="small" color="#FFFFFF" style={{ marginTop: 24 }} />
             </View>
 
             <Text style={styles.slogan}>MindPing</Text>
@@ -58,9 +62,11 @@ const styles = StyleSheet.create({
     logoContainer: {
         alignItems: 'center',
     },
-    emoji: {
-        fontSize: 80,
-        marginBottom: 16,
+    logoImage: {
+        width: 120,
+        height: 120,
+        marginBottom: 20,
+        borderRadius: 28,
     },
     title: {
         fontSize: FontSize.xxl, // 수정됨: headline -> xxl

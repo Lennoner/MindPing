@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Share } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants';
-import { SAMPLE_MESSAGES, MessageData } from '../../src/constants/data';
+import { SAMPLE_MESSAGES, MessageData, DAILY_TIPS } from '../../src/constants/data';
 import { useUserStore } from '../../src/stores/userStore';
 import { useMessageStore } from '../../src/stores/messageStore';
 import { useDiaryStore } from '../../src/stores/diaryStore';
@@ -17,7 +17,7 @@ export default function HomeScreen() {
     const router = useRouter();
     const { user } = useUserStore();
     const { todayMessage, setTodayMessage } = useMessageStore();
-    const { getEntryByDate } = useDiaryStore();
+    const { entries, getEntryByDate } = useDiaryStore();
 
     const today = new Date();
     const hour = today.getHours();
@@ -26,6 +26,40 @@ export default function HomeScreen() {
     const userName = user?.nickname || '사용자';
     const todayDateStr = today.toISOString().split('T')[0];
     const hasTodayEntry = !!getEntryByDate(todayDateStr);
+
+    // 통계 계산
+    const totalEntries = entries.length;
+
+    // 연속 기록일 계산
+    const streakDays = useMemo(() => {
+        if (entries.length === 0) return 0;
+
+        const sortedDates = [...new Set(entries.map(e => e.date))]
+            .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+        let streak = 0;
+        const checkDate = new Date();
+
+        // 오늘 기록이 없으면 어제부터 체크
+        if (!hasTodayEntry) {
+            checkDate.setDate(checkDate.getDate() - 1);
+        }
+
+        for (const dateStr of sortedDates) {
+            const checkDateStr = checkDate.toISOString().split('T')[0];
+            if (dateStr === checkDateStr) {
+                streak++;
+                checkDate.setDate(checkDate.getDate() - 1);
+            } else if (new Date(dateStr) < checkDate) {
+                break;
+            }
+        }
+
+        return streak;
+    }, [entries, hasTodayEntry]);
+
+    // 오늘의 팁 (날짜 기반)
+    const todayTip = DAILY_TIPS[today.getDate() % DAILY_TIPS.length];
 
     // 오늘의 메시지가 없으면 랜덤으로 하나 선택
     const [displayMessage, setDisplayMessage] = useState<MessageData | null>(null);
@@ -108,7 +142,7 @@ export default function HomeScreen() {
         <SafeAreaView style={styles.container} edges={['top']}>
             {/* 통일된 헤더 */}
             <ScreenHeader
-                title="MindPing"
+                title="마음알림"
                 rightAction={NotificationAction}
             />
 
@@ -168,6 +202,36 @@ export default function HomeScreen() {
                         />
                     </View>
                 </TouchableOpacity>
+
+                {/* 통계 섹션 */}
+                <View style={styles.statsSection}>
+                    <View style={styles.statCard}>
+                        <Ionicons name="flame-outline" size={24} color={Colors.categoryComfort} />
+                        <Text style={styles.statNumber}>{streakDays}</Text>
+                        <Text style={styles.statLabel}>연속 기록</Text>
+                    </View>
+                    <View style={styles.statCard}>
+                        <Ionicons name="heart-outline" size={24} color={Colors.primary} />
+                        <Text style={styles.statNumber}>{totalEntries}</Text>
+                        <Text style={styles.statLabel}>총 감사</Text>
+                    </View>
+                    <View style={styles.statCard}>
+                        <Ionicons name="checkmark-circle-outline" size={24} color={Colors.success} />
+                        <Text style={styles.statNumber}>{hasTodayEntry ? '1' : '0'}</Text>
+                        <Text style={styles.statLabel}>오늘</Text>
+                    </View>
+                </View>
+
+                {/* 오늘의 팁 */}
+                <View style={styles.tipCard}>
+                    <View style={styles.tipHeader}>
+                        <Ionicons name="bulb-outline" size={18} color={Colors.categoryWisdom} />
+                        <Text style={styles.tipTitle}>오늘의 팁</Text>
+                    </View>
+                    <Text style={styles.tipContent}>{todayTip}</Text>
+                </View>
+
+                <View style={{ height: Spacing.lg }} />
             </ScrollView>
         </SafeAreaView>
     );
@@ -300,5 +364,54 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    statsSection: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: Spacing.md,
+    },
+    statCard: {
+        flex: 1,
+        backgroundColor: Colors.surface,
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.md,
+        alignItems: 'center',
+        marginHorizontal: 4,
+        borderWidth: 1,
+        borderColor: Colors.cardBorder,
+    },
+    statNumber: {
+        fontSize: FontSize.xl,
+        fontWeight: '700',
+        color: Colors.text,
+        marginTop: Spacing.xs,
+    },
+    statLabel: {
+        fontSize: FontSize.xs,
+        color: Colors.textSecondary,
+        marginTop: 2,
+    },
+    tipCard: {
+        backgroundColor: Colors.categoryWisdom + '15',
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.md,
+        borderLeftWidth: 3,
+        borderLeftColor: Colors.categoryWisdom,
+    },
+    tipHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: Spacing.xs,
+    },
+    tipTitle: {
+        fontSize: FontSize.sm,
+        fontWeight: '600',
+        color: Colors.categoryWisdom,
+        marginLeft: Spacing.xs,
+    },
+    tipContent: {
+        fontSize: FontSize.md,
+        color: Colors.text,
+        lineHeight: 22,
     },
 });
