@@ -1,42 +1,60 @@
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants';
-import { SAMPLE_MESSAGES } from '../../src/constants/data';
 import { useMessageStore } from '../../src/stores/messageStore';
 import { ScreenHeader, EmptyState } from '../../src/components';
 import { formatDateKorean } from '../../src/utils';
+
 
 export default function ArchiveScreen() {
     const { messages, toggleFavorite } = useMessageStore();
     const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
+    // 실시간 시간 업데이트 (메시지 도착 확인용)
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    // 화면이 포커스될 때마다 시간 업데이트 (즉시 반영)
+    useFocusEffect(
+        useCallback(() => {
+            setCurrentTime(new Date());
+        }, [])
+    );
+
+    useEffect(() => {
+        // 1분 간격으로 시간 체크 유지
+        const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+        return () => clearInterval(timer);
+    }, []);
+
     const archiveMessages = messages
+        // 미래 시간 메시지 숨김 (receivedAt > currentTime)
+        .filter(msg => new Date(msg.receivedAt) <= currentTime)
         .filter(msg => !showFavoritesOnly || msg.isFavorite)
         .map((msg) => {
             const receivedDate = new Date(msg.receivedAt);
-            const today = new Date();
-            const isToday = receivedDate.toDateString() === today.toDateString();
-
-            const originalMessage = SAMPLE_MESSAGES.find(m => m.id === msg.id);
-            const emoji = originalMessage?.emoji || '💜';
+            const isToday = receivedDate.toDateString() === currentTime.toDateString();
 
             return {
                 ...msg,
-                emoji,
                 date: formatDateKorean(receivedDate),
                 isToday,
             };
         });
 
+
     const getLineColor = (index: number) => {
         const colors = [
-            Colors.categoryQuestion,
-            Colors.categoryComfort,
-            Colors.categoryWisdom,
-            Colors.categoryDefault,
+            Colors.categoryCognitive,
+            Colors.categoryMindfulness,
+            Colors.categoryAction,
+            Colors.categoryEmotion,
+            Colors.categoryGrowth,
+            Colors.categoryRelationship,
+            Colors.categorySelfcare,
         ];
         return colors[index % colors.length];
     };
@@ -79,12 +97,8 @@ export default function ArchiveScreen() {
                 ) : (
                     archiveMessages.map((message, index) => (
                         <View key={message.id || index} style={styles.cardContainer}>
-                            <View style={[
-                                styles.leftLine,
-                                { backgroundColor: getLineColor(index) }
-                            ]} />
-
-                            <View style={styles.card}>
+                            <View style={[styles.topStripe, { backgroundColor: getLineColor(index) }]} />
+                            <View style={styles.cardContent}>
                                 <View style={styles.dateRow}>
                                     <Text style={styles.date}>{message.date}</Text>
                                     {message.isToday && <Text style={styles.todayLabel}>오늘</Text>}
@@ -141,34 +155,24 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     cardContainer: {
-        flexDirection: 'row',
         marginBottom: Spacing.md,
-        minHeight: 100,
-    },
-    leftLine: {
-        width: 4,
-        height: '100%',
-        borderTopLeftRadius: 4,
-        borderBottomLeftRadius: 4,
-        marginRight: -2,
-        zIndex: 1,
-    },
-    card: {
-        flex: 1,
         backgroundColor: Colors.surface,
         borderRadius: BorderRadius.lg,
-        padding: Spacing.lg,
+        overflow: 'hidden',
         borderWidth: 1,
         borderColor: Colors.cardBorder,
-        borderLeftWidth: 0,
-        borderTopLeftRadius: 0,
-        borderBottomLeftRadius: 0,
-
-        shadowColor: "#000",
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.04,
         shadowRadius: 6,
         elevation: 1,
+    },
+    topStripe: {
+        height: 4,
+        width: '100%',
+    },
+    cardContent: {
+        padding: Spacing.lg,
     },
     dateRow: {
         flexDirection: 'row',
@@ -188,14 +192,17 @@ const styles = StyleSheet.create({
     },
     favoriteButton: {
         position: 'absolute',
-        top: Spacing.md,
-        right: Spacing.md,
-        padding: Spacing.xs,
+        top: Spacing.sm,
+        right: Spacing.sm,
+        width: 44,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     content: {
         fontSize: FontSize.md,
-        color: Colors.text,
-        lineHeight: 22,
+        color: '#4B5563', // 조금 더 부드러운 다크 그레이
+        lineHeight: 24,   // 줄 간격 증가
         fontWeight: '500',
         paddingRight: Spacing.xl,
     },

@@ -87,8 +87,8 @@ export default function OnboardingScreen() {
         const finalNickname = nickname.trim() || '사용자';
         setUser({ nickname: finalNickname, createdAt: new Date() });
         setOnboarded(true);
-        // 기본 시간대로 알림 자동 스케줄링 (리뷰어 로직 병합)
-        await scheduleRandomDailyMessage(['forenoon', 'afternoon', 'evening']);
+        // 기본 시간대로 알림 자동 스케줄링 (즉시 발송 모드)
+        await scheduleRandomDailyMessage(['forenoon', 'afternoon', 'evening'], true);
         router.replace('/(tabs)');
     };
 
@@ -214,6 +214,7 @@ export default function OnboardingScreen() {
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.container}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
             <View style={styles.skipContainer}>
                 <Button
@@ -241,7 +242,13 @@ export default function OnboardingScreen() {
                     const index = Math.round(e.nativeEvent.contentOffset.x / width);
                     setCurrentIndex(index);
                 }}
-                scrollEnabled={false} // 버튼으로만 이동하도록 설정 (닉네임 확인 등을 위해)
+                scrollEnabled={true} // 좌우 드래그 활성화
+                keyboardShouldPersistTaps="handled"
+                getItemLayout={(_, index) => ({
+                    length: width,
+                    offset: width * index,
+                    index,
+                })}
             />
 
             {renderDots()}
@@ -277,7 +284,7 @@ const styles = StyleSheet.create({
     skipContainer: {
         alignItems: 'flex-end',
         paddingHorizontal: Spacing.lg,
-        paddingTop: Spacing.xl,
+        paddingTop: 48, // 상태바 고려하여 여백 추가
     },
     slide: {
         width,
