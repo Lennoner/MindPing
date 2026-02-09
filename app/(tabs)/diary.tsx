@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +14,7 @@ export default function DiaryScreen() {
     const [showModal, setShowModal] = useState(false);
     const [gratitudeText, setGratitudeText] = useState('');
     const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [selectedEntry, setSelectedEntry] = useState<{ date: string; content: string } | null>(null);
 
     const today = getTodayISO();
     const todayEntry = getEntryByDate(today);
@@ -183,12 +184,25 @@ export default function DiaryScreen() {
 
                         <View style={styles.calendarGrid}>
                             {generateCalendar().map((day, index) => (
-                                <View key={index} style={styles.calendarDay}>
+                                <TouchableOpacity
+                                    key={index}
+                                    style={styles.calendarDay}
+                                    disabled={!day.hasEntry}
+                                    onPress={() => {
+                                        if (day.hasEntry && day.dateStr) {
+                                            const entry = getEntryByDate(day.dateStr);
+                                            if (entry) {
+                                                setSelectedEntry({ date: day.dateStr, content: entry.content });
+                                            }
+                                        }
+                                    }}
+                                >
                                     {day.date && (
                                         <>
                                             <Text style={[
                                                 styles.dayNumber,
-                                                day.dateStr === today && styles.dayNumberToday
+                                                day.dateStr === today && styles.dayNumberToday,
+                                                day.hasEntry && styles.dayNumberHasEntry
                                             ]}>
                                                 {day.date}
                                             </Text>
@@ -197,7 +211,7 @@ export default function DiaryScreen() {
                                             )}
                                         </>
                                     )}
-                                </View>
+                                </TouchableOpacity>
                             ))}
                         </View>
 
@@ -248,7 +262,10 @@ export default function DiaryScreen() {
                 transparent
                 onRequestClose={handleCloseModal}
             >
-                <View style={styles.modalOverlay}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.modalOverlay}
+                >
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>오늘의 감사 기록</Text>
                         <Text style={styles.modalSubtitle}>
@@ -285,7 +302,33 @@ export default function DiaryScreen() {
                             </Button>
                         </View>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
+            </Modal>
+
+            {/* 선택된 일기 보기 모달 */}
+            <Modal
+                visible={!!selectedEntry}
+                animationType="fade"
+                transparent
+                onRequestClose={() => setSelectedEntry(null)}
+            >
+                <TouchableOpacity
+                    style={styles.entryModalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setSelectedEntry(null)}
+                >
+                    <View style={styles.entryModalContent}>
+                        <View style={styles.entryModalHeader}>
+                            <Text style={styles.entryModalDate}>
+                                {selectedEntry?.date ? formatISODateKorean(selectedEntry.date) : ''}
+                            </Text>
+                            <TouchableOpacity onPress={() => setSelectedEntry(null)}>
+                                <Ionicons name="close" size={24} color={Colors.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.entryModalText}>{selectedEntry?.content}</Text>
+                    </View>
+                </TouchableOpacity>
             </Modal>
         </SafeAreaView>
     );
@@ -483,6 +526,9 @@ const styles = StyleSheet.create({
         color: Colors.primary,
         fontWeight: 'bold',
     },
+    dayNumberHasEntry: {
+        fontWeight: '600',
+    },
     dayDot: {
         width: 6,
         height: 6,
@@ -588,5 +634,36 @@ const styles = StyleSheet.create({
     modalButton: {
         flex: 1,
         borderRadius: BorderRadius.md,
+    },
+    // 일기 보기 모달
+    entryModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: Spacing.lg,
+    },
+    entryModalContent: {
+        backgroundColor: Colors.surface,
+        borderRadius: BorderRadius.xl,
+        padding: Spacing.lg,
+        width: '100%',
+        maxWidth: 340,
+    },
+    entryModalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: Spacing.md,
+    },
+    entryModalDate: {
+        fontSize: FontSize.md,
+        fontWeight: '600',
+        color: Colors.primary,
+    },
+    entryModalText: {
+        fontSize: FontSize.md,
+        color: Colors.text,
+        lineHeight: 24,
     },
 });

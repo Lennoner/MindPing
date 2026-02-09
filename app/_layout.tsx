@@ -5,8 +5,10 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { LightColors, DarkColors } from '../src/constants';
 import { registerForPushNotificationsAsync } from '../src/utils/notifications';
+import { useMessageStore } from '../src/stores/messageStore';
 
 // 라이트 테마
 const lightTheme = {
@@ -40,11 +42,51 @@ export default function RootLayout() {
     const theme = isDarkMode ? darkTheme : lightTheme;
 
     useEffect(() => {
+        // 알림 권한 요청
         registerForPushNotificationsAsync().then(granted => {
             if (granted) {
-                console.log('Notification permissions granted');
+
             }
         });
+
+
+        // 알림 수신 리스너 (앱이 포그라운드에 있을 때)
+        // 주의: scheduleRandomDailyMessage는 HomeScreen에서만 호출 (중복 방지)
+        const receivedSubscription = Notifications.addNotificationReceivedListener((notification) => {
+            // 알림 수신 시 메시지를 스토어에 동기화 (아직 없다면)
+            const data = notification.request.content.data as { messageId?: string };
+            if (data?.messageId) {
+                const messageStore = useMessageStore.getState();
+                const { SAMPLE_MESSAGES } = require('../src/constants/data');
+                const msgObj = SAMPLE_MESSAGES.find((m: any) => m.id === data.messageId);
+
+                if (msgObj && !messageStore.hasTodayMessage()) {
+                    messageStore.addMessage({
+                        id: msgObj.id,
+                        content: msgObj.content,
+                        category: msgObj.type || msgObj.category,
+                        receivedAt: new Date(),
+                        isRead: false,
+                    });
+                    // 같은 타입 연속 방지를 위해 마지막 메시지 정보 저장
+                    const { useUserStore } = require('../src/stores/userStore');
+                    useUserStore.getState().setLastMessage(msgObj.id, msgObj.type);
+                }
+            }
+        });
+
+        // 알림 클릭 리스너 (사용자가 알림을 탭했을 때)
+        // 주의: 여기서는 스케줄링하지 않음 - HomeScreen에서 처리
+        const responseSubscription = Notifications.addNotificationResponseReceivedListener(() => {
+            // 알림 탭 시 별도 동작 없음 (앱이 열리면 HomeScreen에서 처리)
+        });
+
+
+        // 클린업
+        return () => {
+            receivedSubscription.remove();
+            responseSubscription.remove();
+        };
     }, []);
 
     return (

@@ -17,6 +17,7 @@ export default function SettingsScreen() {
     const { resetMessages } = useMessageStore();
 
     const menuItems = [
+        { iconName: 'person-outline' as const, label: '닉네임 변경', path: '/nickname-settings' },
         { iconName: 'notifications-outline' as const, label: '알림 설정', path: '/notification-settings' },
         { iconName: 'shield-outline' as const, label: '개인정보 처리방침', path: 'https://Lennoner.github.io/MindPing/public/privacy-policy.html', isExternal: true },
     ];
@@ -111,7 +112,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.background,
     },
     content: {
         padding: Spacing.lg,

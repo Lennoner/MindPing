@@ -1,13 +1,11 @@
 import { useState, useRef } from 'react';
-import { View, StyleSheet, Dimensions, FlatList, Animated, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, FlatList, Animated, Alert, TextInput, KeyboardAvoidingView, Platform, useWindowDimensions, ScrollView } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserStore } from '../src/stores';
 import { Colors, FontSize, Spacing, BorderRadius, ONBOARDING_SLIDES } from '../src/constants';
 import { registerForPushNotificationsAsync, scheduleRandomDailyMessage } from '../src/utils/notifications';
-
-const { width } = Dimensions.get('window');
 
 // 온보딩 슬라이드 + 닉네임 + 알림 권한 슬라이드
 const SLIDES_WITH_EXTRAS = [
@@ -29,6 +27,7 @@ const SLIDES_WITH_EXTRAS = [
 
 export default function OnboardingScreen() {
     const router = useRouter();
+    const { width } = useWindowDimensions(); // 동적 너비 사용
     const { setOnboarded, setNotificationsEnabled, setUser } = useUserStore();
     const [currentIndex, setCurrentIndex] = useState(0);
     const [notificationStatus, setNotificationStatus] = useState<'pending' | 'granted' | 'denied'>('pending');
@@ -138,49 +137,58 @@ export default function OnboardingScreen() {
                 : Colors.primary;
 
         return (
-            <View style={styles.slide}>
-                <View style={[
-                    styles.illustrationContainer,
-                    isNotificationSlide && notificationStatus === 'granted' && styles.illustrationSuccess,
-                    isNotificationSlide && notificationStatus === 'denied' && styles.illustrationWarning,
-                ]}>
-                    <Ionicons
-                        name={iconName}
-                        size={80}
-                        color={iconColor}
-                    />
-                </View>
-
-                <Text style={styles.slideTitle}>
-                    {isNotificationSlide && notificationStatus === 'granted'
-                        ? '알림이 켜졌어요!'
-                        : isNotificationSlide && notificationStatus === 'denied'
-                            ? '알림이 꺼져 있어요'
-                            : item.title}
-                </Text>
-
-                <Text style={styles.slideDescription}>
-                    {isNotificationSlide && notificationStatus === 'granted'
-                        ? '이제 예상치 못한 순간에\n따뜻한 위로가 찾아갈 거예요.'
-                        : isNotificationSlide && notificationStatus === 'denied'
-                            ? '설정에서 언제든 알림을 켤 수 있어요.\n일단 둘러보시고 나중에 켜도 돼요!'
-                            : item.description}
-                </Text>
-
-                {isNicknameSlide && (
-                    <View style={styles.inputContainer}>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="닉네임 입력"
-                            value={nickname}
-                            onChangeText={setNickname}
-                            placeholderTextColor={Colors.textTertiary}
-                            maxLength={10}
-                            autoFocus={currentIndex === index} // 현재 슬라이드일 때만 포커스
+            <View style={[styles.slide, { width }]}>
+                <ScrollView
+                    contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    style={{ width: '100%' }}
+                >
+                    <View style={[
+                        styles.illustrationContainer,
+                        isNotificationSlide && notificationStatus === 'granted' && styles.illustrationSuccess,
+                        isNotificationSlide && notificationStatus === 'denied' && styles.illustrationWarning,
+                    ]}>
+                        <Ionicons
+                            name={iconName}
+                            size={80}
+                            color={iconColor}
                         />
-                        <Text style={styles.inputHint}>최대 10자까지 입력 가능해요</Text>
                     </View>
-                )}
+
+                    <Text style={styles.slideTitle}>
+                        {isNotificationSlide && notificationStatus === 'granted'
+                            ? '알림이 켜졌어요!'
+                            : isNotificationSlide && notificationStatus === 'denied'
+                                ? '알림이 꺼져 있어요'
+                                : item.title}
+                    </Text>
+
+                    <Text style={styles.slideDescription}>
+                        {isNotificationSlide && notificationStatus === 'granted'
+                            ? '이제 예상치 못한 순간에\n따뜻한 위로가 찾아갈 거예요.'
+                            : isNotificationSlide && notificationStatus === 'denied'
+                                ? '설정에서 언제든 알림을 켤 수 있어요.\n일단 둘러보시고 나중에 켜도 돼요!'
+                                : item.description}
+                    </Text>
+
+                    {isNicknameSlide && (
+                        <View style={styles.inputContainer}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="닉네임 입력"
+                                value={nickname}
+                                onChangeText={setNickname}
+                                placeholderTextColor={Colors.textTertiary}
+                                maxLength={10}
+                            // autoFocus는 스크롤 애니메이션과 충돌할 수 있으므로 제거하거나 지연 처리 필요
+                            // 여기서는 안정성을 위해 제거하고 사용자가 터치하게 함
+                            />
+                            <Text style={styles.inputHint}>최대 10자까지 입력 가능해요</Text>
+                        </View>
+                    )}
+                    <View style={{ height: Spacing.xxl }} />
+                </ScrollView>
             </View>
         );
     };
@@ -214,7 +222,8 @@ export default function OnboardingScreen() {
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.container}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            // iOS에서 키보드가 올라올 때 상단이 잘리는 것을 방지하기 위해 오프셋 대폭 증가
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
         >
             <View style={styles.skipContainer}>
                 <Button
@@ -242,13 +251,17 @@ export default function OnboardingScreen() {
                     const index = Math.round(e.nativeEvent.contentOffset.x / width);
                     setCurrentIndex(index);
                 }}
-                scrollEnabled={true} // 좌우 드래그 활성화
+                scrollEnabled={true}
+                scrollEventThrottle={16}
+                decelerationRate="fast"
                 keyboardShouldPersistTaps="handled"
                 getItemLayout={(_, index) => ({
                     length: width,
                     offset: width * index,
                     index,
                 })}
+                // 키보드가 올라와도 레이아웃이 깨지지 않도록 설정
+                contentContainerStyle={{ flexGrow: 1 }}
             />
 
             {renderDots()}
@@ -287,7 +300,7 @@ const styles = StyleSheet.create({
         paddingTop: 48, // 상태바 고려하여 여백 추가
     },
     slide: {
-        width,
+
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',

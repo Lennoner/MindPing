@@ -32,11 +32,15 @@ export const LightColors = {
   warning: '#F59E0B',
   error: '#EF4444',
 
-  // 카테고리 색상
-  categoryQuestion: '#6366F1',
-  categoryComfort: '#EC4899',
-  categoryWisdom: '#10B981',
-  categoryDefault: '#F59E0B',
+  // 카테고리 색상 (7가지)
+  categoryCognitive: '#6366F1',   // 인지/심리 - 인디고
+  categoryMindfulness: '#8B5CF6', // 마음챙김 - 바이올렛
+  categoryAction: '#F59E0B',      // 실천 - 앰버
+  categoryEmotion: '#EC4899',     // 감정 - 핑크
+  categoryGrowth: '#10B981',      // 성장 - 에메랄드
+  categoryRelationship: '#06B6D4',// 관계 - 시안
+  categorySelfcare: '#F472B6',    // 자기돌봄 - 라이트핑크
+  categoryDefault: '#9CA3AF',
 
   // 기타
   border: '#F3F4F6',
@@ -80,11 +84,15 @@ export const DarkColors = {
   warning: '#FBBF24',
   error: '#F87171',
 
-  // 카테고리 색상
-  categoryQuestion: '#818CF8',
-  categoryComfort: '#F472B6',
-  categoryWisdom: '#34D399',
-  categoryDefault: '#FBBF24',
+  // 카테고리 색상 (7가지)
+  categoryCognitive: '#818CF8',   // 인지/심리
+  categoryMindfulness: '#A78BFA', // 마음챙김
+  categoryAction: '#FBBF24',      // 실천
+  categoryEmotion: '#F472B6',     // 감정
+  categoryGrowth: '#34D399',      // 성장
+  categoryRelationship: '#22D3EE',// 관계
+  categorySelfcare: '#F9A8D4',    // 자기돌봄
+  categoryDefault: '#9CA3AF',
 
   // 기타
   border: '#334155',
@@ -125,4 +133,29 @@ export const BorderRadius = {
   xl: 20,
   xxl: 24,
   full: 9999,
+};
+
+// 표준화된 그림자 시스템
+export const Elevation = {
+  sm: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  md: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  lg: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
 };

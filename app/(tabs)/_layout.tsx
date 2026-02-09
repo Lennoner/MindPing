@@ -14,7 +14,7 @@ export default function TabsLayout() {
                 tabBarStyle: [
                     styles.tabBar,
                     {
-                        height: 56 + insets.bottom,
+                        height: 60 + insets.bottom,
                         paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
                     }
                 ],
@@ -31,7 +31,7 @@ export default function TabsLayout() {
                     tabBarIcon: ({ focused, color }) => (
                         <Ionicons
                             name={focused ? 'home' : 'home-outline'}
-                            size={22}
+                            size={24}
                             color={color}
                         />
                     ),
@@ -44,7 +44,7 @@ export default function TabsLayout() {
                     tabBarIcon: ({ focused, color }) => (
                         <Ionicons
                             name={focused ? 'book' : 'book-outline'}
-                            size={22}
+                            size={24}
                             color={color}
                         />
                     ),
@@ -57,7 +57,7 @@ export default function TabsLayout() {
                     tabBarIcon: ({ focused, color }) => (
                         <Ionicons
                             name={focused ? 'file-tray-full' : 'file-tray-full-outline'}
-                            size={22}
+                            size={24}
                             color={color}
                         />
                     ),
@@ -70,7 +70,7 @@ export default function TabsLayout() {
                     tabBarIcon: ({ focused, color }) => (
                         <Ionicons
                             name={focused ? 'settings' : 'settings-outline'}
-                            size={22}
+                            size={24}
                             color={color}
                         />
                     ),
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
         borderTopColor: Colors.border,
         elevation: 0,
         shadowOpacity: 0,
-        paddingTop: 6,
+        paddingTop: 8,
     },
     tabBarLabel: {
         fontSize: 11,

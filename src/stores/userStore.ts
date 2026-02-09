@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { TimeSlot } from '../constants';
+import { TimeSlot, MessageType } from '../constants';
 
 interface User {
     nickname: string;
@@ -19,7 +19,7 @@ interface UserState {
 
     // 메시지 수신 이력
     lastMessageId: string | null;
-    lastMessageType: 'question' | 'comfort' | 'wisdom' | null;
+    lastMessageType: MessageType | null;
 
     // 액션
     setUser: (user: User) => void;
@@ -30,7 +30,7 @@ interface UserState {
     setPreferredTimeSlots: (slots: TimeSlot[]) => void;
     setNotificationsEnabled: (enabled: boolean) => void;
 
-    setLastMessage: (id: string, type: 'question' | 'comfort' | 'wisdom') => void;
+    setLastMessage: (id: string, type: MessageType) => void;
 }
 
 export const useUserStore = create<UserState>()(

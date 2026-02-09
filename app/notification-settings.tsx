@@ -5,8 +5,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants';
 import { TIME_SLOTS, TimeSlot } from '../src/constants/data';
+import * as Notifications from 'expo-notifications';
 import { useUserStore } from '../src/stores/userStore';
 import { scheduleRandomDailyMessage } from '../src/utils/notifications';
+import { ScreenHeader } from '../src/components';
 
 export default function NotificationSettingsScreen() {
     const router = useRouter();
@@ -26,6 +28,9 @@ export default function NotificationSettingsScreen() {
         setNotificationsEnabled(isEnabled);
         setPreferredTimeSlots(selectedSlots);
 
+        // 기존 예약된 알림 취소 (새로운 시간대로 다시잡기 위해)
+        await Notifications.cancelAllScheduledNotificationsAsync();
+
         if (isEnabled && selectedSlots.length > 0) {
             await scheduleRandomDailyMessage(selectedSlots);
         }
@@ -35,13 +40,11 @@ export default function NotificationSettingsScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Text style={styles.backBtn}>← 뒤로</Text>
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>알림 설정</Text>
-                <View style={{ width: 50 }} />
-            </View>
+            <ScreenHeader
+                title="알림 설정"
+                showBack
+                onBack={() => router.back()}
+            />
 
             <View style={styles.content}>
                 {/* 알림 on/off */}
@@ -92,10 +95,17 @@ export default function NotificationSettingsScreen() {
                     </View>
                 )}
 
+                {/* 안내 텍스트 */}
+                {isEnabled && selectedSlots.length === 0 && (
+                    <Text style={styles.warningText}>
+                        ⚠️ 최소 하나의 시간대를 선택해주세요
+                    </Text>
+                )}
+
                 <Button
                     mode="contained"
                     onPress={handleSave}
-                    style={styles.saveBtn}
+                    style={[styles.saveBtn, isEnabled && selectedSlots.length === 0 && styles.saveBtnDisabled]}
                     contentStyle={styles.saveBtnContent}
                     disabled={isEnabled && selectedSlots.length === 0}
                 >
@@ -110,24 +120,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: Colors.background,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
-    },
-    backBtn: {
-        fontSize: FontSize.md,
-        color: Colors.primary,
-    },
-    headerTitle: {
-        fontSize: FontSize.lg,
-        fontWeight: '700',
-        color: Colors.text,
     },
     content: {
         padding: Spacing.lg,
@@ -201,9 +193,18 @@ const styles = StyleSheet.create({
     slotRangeSelected: {
         color: Colors.primary,
     },
+    warningText: {
+        fontSize: FontSize.sm,
+        color: Colors.warning,
+        textAlign: 'center',
+        marginBottom: Spacing.sm,
+    },
     saveBtn: {
         marginTop: Spacing.lg,
         backgroundColor: Colors.primary,
+    },
+    saveBtnDisabled: {
+        backgroundColor: Colors.textTertiary,
     },
     saveBtnContent: {
         paddingVertical: Spacing.sm,

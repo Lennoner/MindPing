@@ -1,49 +1,77 @@
-import { useEffect, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
+import { View, StyleSheet, Animated, useColorScheme } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { Colors, FontSize } from '../src/constants';
 import { useUserStore } from '../src/stores/userStore';
 
 export default function SplashScreen() {
     const router = useRouter();
     const { isOnboarded } = useUserStore();
-    const [isReady, setIsReady] = useState(false);
+    const colorScheme = useColorScheme();
+    const isDarkMode = colorScheme === 'dark';
+
+    // 애니메이션 값들
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
     useEffect(() => {
-        // 1초 뒤에 준비 상태로 변경
+        // 페이드 인 + 스케일 애니메이션
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 600,
+                useNativeDriver: true,
+            }),
+            Animated.spring(scaleAnim, {
+                toValue: 1,
+                tension: 50,
+                friction: 7,
+                useNativeDriver: true,
+            }),
+        ]).start();
+
+        // 1.2초 후 다음 화면으로 이동
         const timer = setTimeout(() => {
-            setIsReady(true);
-        }, 1000);
+            // 페이드 아웃
+            Animated.timing(fadeAnim, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }).start(() => {
+                if (isOnboarded) {
+                    router.replace('/(tabs)');
+                } else {
+                    router.replace('/onboarding');
+                }
+            });
+        }, 1200);
 
         return () => clearTimeout(timer);
-    }, []);
+    }, [isOnboarded]);
 
-    useEffect(() => {
-        if (!isReady) return;
-
-        // 준비되면 온보딩 상태에 따라 이동
-        const navigationTimer = setTimeout(() => {
-            if (isOnboarded) {
-                router.replace('/(tabs)');
-            } else {
-                router.replace('/onboarding');
-            }
-        }, 1000);
-
-        return () => clearTimeout(navigationTimer);
-    }, [isReady, router, isOnboarded]);
+    const backgroundColor = isDarkMode ? '#1A1A2E' : '#FFFFFF';
+    const textColor = isDarkMode ? '#FFFFFF' : '#1A1A2E';
+    const accentColor = '#6366F1';
 
     return (
-        <View style={styles.container}>
-            <View style={styles.logoContainer}>
-                <Text style={styles.emoji}>💜</Text>
-                <Text style={styles.title}>마음알림</Text>
-                <Text style={styles.subtitle}>예측할 수 없는 순간, 예상치 못한 위로</Text>
-                <ActivityIndicator size="small" color="#FFFFFF" style={{ marginTop: 20 }} />
-            </View>
+        <View style={[styles.container, { backgroundColor }]}>
+            <Animated.View
+                style={[
+                    styles.content,
+                    {
+                        opacity: fadeAnim,
+                        transform: [{ scale: scaleAnim }],
+                    }
+                ]}
+            >
+                {/* 메인 타이틀 */}
+                <Text style={[styles.title, { color: textColor }]}>
+                    마음알림
+                </Text>
 
-            <Text style={styles.slogan}>MindPing</Text>
+                {/* 심플한 언더라인 악센트 */}
+                <View style={[styles.accent, { backgroundColor: accentColor }]} />
+            </Animated.View>
         </View>
     );
 }
@@ -51,33 +79,21 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    logoContainer: {
+    content: {
         alignItems: 'center',
     },
-    emoji: {
-        fontSize: 80,
-        marginBottom: 16,
-    },
     title: {
-        fontSize: FontSize.xxl,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
-        marginBottom: 8,
+        fontSize: 36,
+        fontWeight: '300',
+        letterSpacing: 8,
     },
-    subtitle: {
-        fontSize: FontSize.md,
-        color: 'rgba(255, 255, 255, 0.8)',
-        textAlign: 'center',
-    },
-    slogan: {
-        position: 'absolute',
-        bottom: 48,
-        fontSize: FontSize.sm,
-        color: 'rgba(255, 255, 255, 0.6)',
-        letterSpacing: 2,
+    accent: {
+        width: 40,
+        height: 3,
+        borderRadius: 2,
+        marginTop: 16,
     },
 });
