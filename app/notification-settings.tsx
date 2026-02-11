@@ -7,7 +7,7 @@ import { Colors, Spacing, FontSize, BorderRadius } from '../src/constants';
 import { TIME_SLOTS, TimeSlot } from '../src/constants/data';
 import * as Notifications from 'expo-notifications';
 import { useUserStore } from '../src/stores/userStore';
-import { scheduleRandomDailyMessage } from '../src/utils/notifications';
+import { rescheduleFromTomorrow } from '../src/utils/notifications';
 import { ScreenHeader } from '../src/components';
 
 export default function NotificationSettingsScreen() {
@@ -28,11 +28,12 @@ export default function NotificationSettingsScreen() {
         setNotificationsEnabled(isEnabled);
         setPreferredTimeSlots(selectedSlots);
 
-        // 기존 예약된 알림 취소 (새로운 시간대로 다시잡기 위해)
-        await Notifications.cancelAllScheduledNotificationsAsync();
-
         if (isEnabled && selectedSlots.length > 0) {
-            await scheduleRandomDailyMessage(selectedSlots);
+            // 오늘 메시지는 유지하고, 내일부터 새 시간대로 재스케줄링
+            await rescheduleFromTomorrow(selectedSlots);
+        } else {
+            // 알림 비활성화 시 모든 예약 알림 취소
+            await Notifications.cancelAllScheduledNotificationsAsync();
         }
 
         router.back();
