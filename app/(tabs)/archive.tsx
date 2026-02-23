@@ -1,11 +1,11 @@
-import { View, StyleSheet, ScrollView, TouchableOpacity, Modal, TouchableWithoutFeedback } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Modal, TouchableWithoutFeedback, FlatList } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, BorderRadius } from '../../src/constants';
-import { useMessageStore, Message } from '../../src/stores/messageStore';
+import { useMessageStore, Message, MessageCategory } from '../../src/stores/messageStore';
 import { ScreenHeader, EmptyState } from '../../src/components';
 import { formatDateKorean } from '../../src/utils';
 
@@ -13,6 +13,7 @@ import { formatDateKorean } from '../../src/utils';
 export default function ArchiveScreen() {
     const { messages, toggleFavorite } = useMessageStore();
     const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState<MessageCategory | null>(null);
 
     // 선택된 메시지 ID (모달용) - 객체 대신 ID를 저장하여 스토어 업데이트 시 반응형 유지
     const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
@@ -37,6 +38,7 @@ export default function ArchiveScreen() {
         // 미래 시간 메시지 숨김 (receivedAt > currentTime)
         .filter(msg => new Date(msg.receivedAt) <= currentTime)
         .filter(msg => !showFavoritesOnly || msg.isFavorite)
+        .filter(msg => !selectedCategory || msg.category === selectedCategory)
         .sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime()) // 최신순 정렬 보장
         .map((msg) => {
             const receivedDate = new Date(msg.receivedAt);
@@ -50,14 +52,23 @@ export default function ArchiveScreen() {
         });
 
     // 선택된 메시지 객체 찾기 (스토어 상태 반영을 위해 매 렌더링마다 찾음)
-    // selectedMessageId가 설정되어 있어도, 리스트에서 찾을 수 없다면(필터링 등) null 처리
-    const activeMessage = selectedMessageId
-        ? archiveMessages.find(m => m.id === selectedMessageId) || messages.find(m => m.id === selectedMessageId)
-        // fallback to generic store search if filtered out from archiveMessages (e.g. by 'favorites only' toggle while open? unlikely but safe)
-        : null;
-
-    // activeMessage가 일반 message 객체일 경우 date 포맷팅이 안되어 있을 수 있으므로 방어 로직 필요
-    // 하지만 UI 단순화를 위해 모달 렌더링 시 처리
+    const activeMessage = (() => {
+        if (!selectedMessageId) return null;
+        // archiveMessages에서 먼저 찾기 (date, isToday 포함)
+        const fromArchive = archiveMessages.find(m => m.id === selectedMessageId);
+        if (fromArchive) return fromArchive;
+        // fallback: 필터링으로 숨겨진 경우 원본에서 찾아서 date/isToday 계산
+        const fromStore = messages.find(m => m.id === selectedMessageId);
+        if (fromStore) {
+            const receivedDate = new Date(fromStore.receivedAt);
+            return {
+                ...fromStore,
+                date: formatDateKorean(receivedDate),
+                isToday: receivedDate.toDateString() === currentTime.toDateString(),
+            };
+        }
+        return null;
+    })();
 
     const getLineColor = (index: number) => {
         const colors = [
@@ -95,6 +106,18 @@ export default function ArchiveScreen() {
         selfcare: '자기돌봄',
     };
 
+    const CATEGORY_EMOJI: Record<string, string> = {
+        cognitive: '🧠',
+        mindfulness: '🧘',
+        action: '⚡',
+        emotion: '💜',
+        growth: '🌱',
+        relationship: '🤝',
+        selfcare: '☕',
+    };
+
+    const ALL_CATEGORIES: MessageCategory[] = ['cognitive', 'mindfulness', 'action', 'emotion', 'growth', 'relationship', 'selfcare'];
+
     // 필터 토글 버튼 (통일된 스타일)
     const FilterButton = (
         <TouchableOpacity
@@ -116,53 +139,97 @@ export default function ArchiveScreen() {
                 rightAction={FilterButton}
             />
 
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-                {/* 메시지 개수 표시 */}
-                <View style={styles.countBadge}>
-                    <Text style={styles.countText}>
-                        {showFavoritesOnly ? '즐겨찾기' : '받은 메시지'} {archiveMessages.length}개
-                    </Text>
-                </View>
+            <FlatList
+                data={archiveMessages}
+                keyExtractor={(item) => item.id}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.listContent}
+                ListHeaderComponent={
+                    <>
+                        {/* 카테고리 필터 칩 */}
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.categoryFilterContainer}
+                            contentContainerStyle={styles.categoryFilterContent}
+                        >
+                            <TouchableOpacity
+                                style={[
+                                    styles.categoryChip,
+                                    !selectedCategory && styles.categoryChipActive,
+                                ]}
+                                onPress={() => setSelectedCategory(null)}
+                            >
+                                <Text style={[
+                                    styles.categoryChipText,
+                                    !selectedCategory && styles.categoryChipTextActive,
+                                ]}>전체</Text>
+                            </TouchableOpacity>
+                            {ALL_CATEGORIES.map((cat) => (
+                                <TouchableOpacity
+                                    key={cat}
+                                    style={[
+                                        styles.categoryChip,
+                                        selectedCategory === cat && {
+                                            backgroundColor: getCategoryColor(cat),
+                                            borderColor: getCategoryColor(cat),
+                                        },
+                                    ]}
+                                    onPress={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                                >
+                                    <Text style={[
+                                        styles.categoryChipText,
+                                        selectedCategory === cat && styles.categoryChipTextActive,
+                                    ]}>{CATEGORY_EMOJI[cat]} {CATEGORY_LABELS[cat]}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
 
-                {archiveMessages.length === 0 ? (
+                        {/* 메시지 개수 표시 */}
+                        <View style={styles.countBadge}>
+                            <Text style={styles.countText}>
+                                {showFavoritesOnly && selectedCategory ? `즐겨찾기 · ${CATEGORY_LABELS[selectedCategory]}` : showFavoritesOnly ? '즐겨찾기' : selectedCategory ? CATEGORY_LABELS[selectedCategory] : '받은 메시지'} {archiveMessages.length}개
+                            </Text>
+                        </View>
+                    </>
+                }
+                ListEmptyComponent={
                     <EmptyState
                         icon={showFavoritesOnly ? 'heart-outline' : 'mail-open-outline'}
                         title={showFavoritesOnly ? '즐겨찾기한 메시지가 없어요' : '아직 받은 메시지가 없어요'}
                         description={showFavoritesOnly ? '마음에 드는 메시지의 하트를 눌러보세요' : '알림을 설정하면 매일 따뜻한 메시지를 받을 수 있어요'}
                     />
-                ) : (
-                    archiveMessages.map((message, index) => (
-                        <TouchableOpacity
-                            key={message.id || index}
-                            style={styles.cardContainer}
-                            activeOpacity={0.9}
-                            onPress={() => setSelectedMessageId(message.id)}
-                        >
-                            <View style={[styles.topStripe, { backgroundColor: getLineColor(index) }]} />
-                            <View style={styles.cardContent}>
-                                <View style={styles.dateRow}>
-                                    <Text style={styles.date}>{message.date}</Text>
-                                    {message.isToday && <Text style={styles.todayLabel}>오늘</Text>}
-                                </View>
-
-                                <TouchableOpacity
-                                    style={styles.favoriteButton}
-                                    onPress={() => toggleFavorite(message.id)}
-                                >
-                                    <Ionicons
-                                        name={message.isFavorite ? 'heart' : 'heart-outline'}
-                                        size={20}
-                                        color={message.isFavorite ? Colors.primary : Colors.textTertiary}
-                                    />
-                                </TouchableOpacity>
-
-                                <Text style={styles.content} numberOfLines={4}>{message.content}</Text>
+                }
+                renderItem={({ item, index }) => (
+                    <TouchableOpacity
+                        style={styles.cardContainer}
+                        activeOpacity={0.9}
+                        onPress={() => setSelectedMessageId(item.id)}
+                    >
+                        <View style={[styles.topStripe, { backgroundColor: getLineColor(index) }]} />
+                        <View style={styles.cardContent}>
+                            <View style={styles.dateRow}>
+                                <Text style={styles.date}>{item.date}</Text>
+                                {item.isToday && <Text style={styles.todayLabel}>오늘</Text>}
                             </View>
-                        </TouchableOpacity>
-                    ))
+
+                            <TouchableOpacity
+                                style={styles.favoriteButton}
+                                onPress={() => toggleFavorite(item.id)}
+                            >
+                                <Ionicons
+                                    name={item.isFavorite ? 'heart' : 'heart-outline'}
+                                    size={20}
+                                    color={item.isFavorite ? Colors.primary : Colors.textTertiary}
+                                />
+                            </TouchableOpacity>
+
+                            <Text style={styles.content} numberOfLines={4}>{item.content}</Text>
+                        </View>
+                    </TouchableOpacity>
                 )}
-                <View style={{ height: Spacing.lg }} />
-            </ScrollView>
+                ListFooterComponent={<View style={{ height: Spacing.lg }} />}
+            />
 
             {/* 메시지 상세 모달 */}
             <Modal
@@ -180,9 +247,9 @@ export default function ArchiveScreen() {
                                         <View style={styles.modalHeader}>
                                             <View style={styles.dateRow}>
                                                 <Text style={styles.date}>
-                                                    {'date' in activeMessage ? activeMessage.date : formatDateKorean(new Date(activeMessage.receivedAt))}
+                                                    {activeMessage.date}
                                                 </Text>
-                                                {'isToday' in activeMessage && activeMessage.isToday && <Text style={styles.todayLabel}>오늘</Text>}
+                                                {activeMessage.isToday && <Text style={styles.todayLabel}>오늘</Text>}
                                             </View>
 
                                             <TouchableOpacity
@@ -237,6 +304,9 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Colors.background,
     },
+    listContent: {
+        padding: Spacing.lg,
+    },
     scrollView: {
         flex: 1,
         padding: Spacing.lg,
@@ -251,6 +321,34 @@ const styles = StyleSheet.create({
     },
     filterButtonActive: {
         backgroundColor: Colors.primary,
+    },
+    categoryFilterContainer: {
+        marginBottom: Spacing.md,
+        marginHorizontal: -Spacing.lg,
+    },
+    categoryFilterContent: {
+        paddingHorizontal: Spacing.lg,
+        gap: Spacing.sm,
+    },
+    categoryChip: {
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        borderRadius: BorderRadius.full,
+        borderWidth: 1,
+        borderColor: Colors.cardBorder,
+        backgroundColor: Colors.surface,
+    },
+    categoryChipActive: {
+        backgroundColor: Colors.primary,
+        borderColor: Colors.primary,
+    },
+    categoryChipText: {
+        fontSize: FontSize.xs,
+        fontWeight: '600',
+        color: Colors.textSecondary,
+    },
+    categoryChipTextActive: {
+        color: Colors.white,
     },
     countBadge: {
         marginBottom: Spacing.md,

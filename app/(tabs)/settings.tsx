@@ -9,6 +9,7 @@ import { useMessageStore } from '../../src/stores/messageStore';
 import { useDiaryStore } from '../../src/stores/diaryStore';
 import { ScreenHeader } from '../../src/components';
 import * as Notifications from 'expo-notifications';
+import appJson from '../../app.json';
 
 export default function SettingsScreen() {
     const router = useRouter();
@@ -101,7 +102,7 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
 
                 <View style={styles.footer}>
-                    <Text style={styles.version}>MindPing v1.0.0</Text>
+                    <Text style={styles.version}>MindPing v{appJson.expo.version}</Text>
                     <Text style={styles.copyright}>Simple & Private Healing App</Text>
                 </View>
             </View>

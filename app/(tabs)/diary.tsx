@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,15 +9,39 @@ import { ScreenHeader, EmptyState, IconButton } from '../../src/components';
 import { formatISODateKorean, getTodayISO } from '../../src/utils';
 
 export default function DiaryScreen() {
-    const { entries, addEntry, getEntryByDate } = useDiaryStore();
+    const { entries, addEntry, getEntryByDate, getCurrentStreak } = useDiaryStore();
     const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
     const [showModal, setShowModal] = useState(false);
     const [gratitudeText, setGratitudeText] = useState('');
+    const [targetDate, setTargetDate] = useState(getTodayISO());
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedEntry, setSelectedEntry] = useState<{ date: string; content: string } | null>(null);
 
     const today = getTodayISO();
     const todayEntry = getEntryByDate(today);
+
+    // 날짜순 정렬된 일기 목록 (최신순)
+    const sortedEntries = useMemo(() => {
+        return [...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [entries]);
+
+    const currentIndex = selectedEntry ? sortedEntries.findIndex(e => e.date === selectedEntry.date) : -1;
+    const hasNext = currentIndex > 0; // 더 최신 글 있음 (미래 방향)
+    const hasPrev = currentIndex !== -1 && currentIndex < sortedEntries.length - 1; // 더 과거 글 있음 (과거 방향)
+
+    const handlePrevEntry = () => {
+        if (hasPrev) {
+            const entry = sortedEntries[currentIndex + 1];
+            setSelectedEntry({ date: entry.date, content: entry.content });
+        }
+    };
+
+    const handleNextEntry = () => {
+        if (hasNext) {
+            const entry = sortedEntries[currentIndex - 1];
+            setSelectedEntry({ date: entry.date, content: entry.content });
+        }
+    };
 
     const handleCloseModal = () => {
         setShowModal(false);
@@ -26,12 +50,13 @@ export default function DiaryScreen() {
 
     const handleSave = () => {
         if (gratitudeText.trim()) {
-            addEntry(gratitudeText.trim());
+            addEntry(gratitudeText.trim(), targetDate);
             handleCloseModal();
         }
     };
 
-    const handleOpenModal = (existingContent?: string) => {
+    const handleOpenModal = (existingContent?: string, dateStr?: string) => {
+        setTargetDate(dateStr || getTodayISO());
         if (existingContent) {
             setGratitudeText(existingContent);
         }
@@ -107,7 +132,7 @@ export default function DiaryScreen() {
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
                 {/* 감사일기 효과 설명 배너 */}
-                {entries.length < 3 && (
+                {entries.length < 3 ? (
                     <View style={styles.effectBanner}>
                         <View style={styles.effectIconContainer}>
                             <Ionicons name="sparkles" size={18} color={Colors.primary} />
@@ -117,6 +142,17 @@ export default function DiaryScreen() {
                             <Text style={styles.effectDescription}>
                                 매일 감사한 일을 기록하면 행복감이 25% 증가하고,{'\n'}
                                 스트레스가 줄어든다는 연구 결과가 있어요.
+                            </Text>
+                        </View>
+                    </View>
+                ) : (
+                    <View style={styles.streakBanner}>
+                        <View style={styles.streakContent}>
+                            <Text style={styles.streakCount}>🔥 {getCurrentStreak()}일 연속</Text>
+                            <Text style={styles.streakMessage}>
+                                {getCurrentStreak() > 0
+                                    ? '꾸준한 마음의 기록이 쌓이고 있어요!'
+                                    : '오늘의 감사를 찾아 다시 시작해볼까요?'}
                             </Text>
                         </View>
                     </View>
@@ -187,13 +223,15 @@ export default function DiaryScreen() {
                                 <TouchableOpacity
                                     key={index}
                                     style={styles.calendarDay}
-                                    disabled={!day.hasEntry}
+                                    disabled={!day.date || (day.dateStr as string) > today}
                                     onPress={() => {
                                         if (day.hasEntry && day.dateStr) {
                                             const entry = getEntryByDate(day.dateStr);
                                             if (entry) {
                                                 setSelectedEntry({ date: day.dateStr, content: entry.content });
                                             }
+                                        } else if (day.dateStr) {
+                                            handleOpenModal(undefined, day.dateStr);
                                         }
                                     }}
                                 >
@@ -267,9 +305,11 @@ export default function DiaryScreen() {
                     style={styles.modalOverlay}
                 >
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>오늘의 감사 기록</Text>
+                        <Text style={styles.modalTitle}>
+                            {targetDate === today ? '오늘의 감사 기록' : `${formatISODateKorean(targetDate)}의 감사`}
+                        </Text>
                         <Text style={styles.modalSubtitle}>
-                            오늘 감사했던 일, 사람, 순간을 적어보세요
+                            {targetDate === today ? '오늘' : '그날'} 감사했던 일, 사람, 순간을 적어보세요
                         </Text>
 
                         <TextInput
@@ -326,7 +366,32 @@ export default function DiaryScreen() {
                                 <Ionicons name="close" size={24} color={Colors.textSecondary} />
                             </TouchableOpacity>
                         </View>
-                        <Text style={styles.entryModalText}>{selectedEntry?.content}</Text>
+                        <ScrollView style={styles.entryModalScroll}>
+                            <Text style={styles.entryModalText}>{selectedEntry?.content}</Text>
+                        </ScrollView>
+
+                        {/* 네비게이션 버튼 */}
+                        <View style={styles.entryNavContainer}>
+                            <TouchableOpacity
+                                onPress={handlePrevEntry}
+                                disabled={!hasPrev}
+                                style={[styles.navButton, !hasPrev && styles.navButtonDisabled]}
+                            >
+                                <Ionicons name="chevron-back" size={20} color={hasPrev ? Colors.primary : Colors.textTertiary} />
+                                <Text style={[styles.navText, !hasPrev && styles.navTextDisabled]}>이전</Text>
+                            </TouchableOpacity>
+
+                            <View style={styles.navDivider} />
+
+                            <TouchableOpacity
+                                onPress={handleNextEntry}
+                                disabled={!hasNext}
+                                style={[styles.navButton, !hasNext && styles.navButtonDisabled]}
+                            >
+                                <Text style={[styles.navText, !hasNext && styles.navTextDisabled]}>다음</Text>
+                                <Ionicons name="chevron-forward" size={20} color={hasNext ? Colors.primary : Colors.textTertiary} />
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </TouchableOpacity>
             </Modal>
@@ -392,6 +457,35 @@ const styles = StyleSheet.create({
         fontSize: FontSize.xs,
         color: Colors.textSecondary,
         lineHeight: 18,
+    },
+    streakBanner: {
+        backgroundColor: Colors.surface,
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.lg,
+        marginBottom: Spacing.lg,
+        borderWidth: 1,
+        borderColor: Colors.cardBorder,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+        elevation: 1,
+    },
+    streakContent: {
+        alignItems: 'center',
+    },
+    streakCount: {
+        fontSize: FontSize.lg,
+        fontWeight: '700',
+        color: Colors.text,
+        marginBottom: Spacing.xs,
+    },
+    streakMessage: {
+        fontSize: FontSize.sm,
+        color: Colors.textSecondary,
     },
     todaySection: {
         marginBottom: Spacing.lg,
@@ -665,5 +759,39 @@ const styles = StyleSheet.create({
         fontSize: FontSize.md,
         color: Colors.text,
         lineHeight: 24,
+    },
+    entryModalScroll: {
+        maxHeight: 300,
+        marginBottom: Spacing.lg,
+    },
+    entryNavContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderTopColor: Colors.border,
+        paddingTop: Spacing.md,
+    },
+    navButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: Spacing.sm,
+    },
+    navButtonDisabled: {
+        opacity: 0.5,
+    },
+    navText: {
+        fontSize: FontSize.sm,
+        color: Colors.primary,
+        fontWeight: '600',
+        marginHorizontal: 4,
+    },
+    navTextDisabled: {
+        color: Colors.textTertiary,
+    },
+    navDivider: {
+        width: 1,
+        height: 16,
+        backgroundColor: Colors.border,
     },
 });

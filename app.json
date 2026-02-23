@@ -2,7 +2,7 @@
   "expo": {
     "name": "마음알림",
     "slug": "mindping",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/logo2.png",
     "userInterfaceStyle": "automatic",
@@ -18,6 +18,7 @@
       "bundleIdentifier": "com.mindping.app"
     },
     "android": {
+      "versionCode": 10,
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo2.png",
         "backgroundColor": "#FFFFFF"

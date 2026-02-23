@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Share, Image } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,17 +26,42 @@ export default function HomeScreen() {
     const todayDateStr = today.toISOString().split('T')[0];
     const hasTodayEntry = !!getEntryByDate(todayDateStr);
 
-    const isSchedulingRef = useRef(false);
-
-    // 앱 시작 시 스케줄 점검 (오늘 메시지 동기화 + 향후 일주일치 예약)
+    // 앱 시작 시 스케줄 점검 (Zustand hydration 완료 후 1회만 실행)
     useEffect(() => {
-        if (notificationsEnabled && preferredTimeSlots.length > 0 && !isSchedulingRef.current) {
-            isSchedulingRef.current = true;
-            scheduleRandomDailyMessage(preferredTimeSlots).then(() => {
-                isSchedulingRef.current = false;
+        let cancelled = false;
+
+        const checkSchedule = async () => {
+            const { notificationsEnabled: enabled, preferredTimeSlots: slots } = useUserStore.getState();
+            if (!cancelled && enabled && slots.length > 0) {
+                await scheduleRandomDailyMessage(slots);
+            }
+        };
+
+        // 두 스토어 모두 hydration 완료 확인 후 스케줄링
+        const messageHydrated = useMessageStore.persist.hasHydrated();
+        const userHydrated = useUserStore.persist.hasHydrated();
+
+        if (messageHydrated && userHydrated) {
+            // 이미 hydrate 완료된 경우 즉시 실행
+            checkSchedule();
+        } else {
+            // hydration 완료 대기
+            const unsubMessage = useMessageStore.persist.onFinishHydration(() => {
+                if (useUserStore.persist.hasHydrated()) checkSchedule();
             });
+            const unsubUser = useUserStore.persist.onFinishHydration(() => {
+                if (useMessageStore.persist.hasHydrated()) checkSchedule();
+            });
+
+            return () => {
+                cancelled = true;
+                unsubMessage();
+                unsubUser();
+            };
         }
-    }, [notificationsEnabled, preferredTimeSlots]);
+
+        return () => { cancelled = true; };
+    }, []);
 
     // 카테고리 라벨
     const getTagLabel = (type: string) => {

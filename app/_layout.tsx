@@ -7,7 +7,7 @@ import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { LightColors, DarkColors } from '../src/constants';
-import { registerForPushNotificationsAsync } from '../src/utils/notifications';
+import { registerForPushNotificationsAsync, syncNotificationToStore } from '../src/utils/notifications';
 
 // 라이트 테마
 const lightTheme = {
@@ -50,18 +50,21 @@ export default function RootLayout() {
 
 
         // 알림 수신 리스너 (앱이 포그라운드에 있을 때)
-        // 주의: 메시지 추가는 ensureMessageSchedule에서만 수행 (중복 방지)
-        // 이 리스너에서는 추가적인 메시지 등록을 하지 않음
-        const receivedSubscription = Notifications.addNotificationReceivedListener(() => {
-            // 알림 수신은 로깅만 수행
-            // 메시지는 이미 ensureMessageSchedule에서 스토어에 추가됨
-            console.log('[Notifications] 알림 수신됨 (스토어 동기화는 ensureMessageSchedule에서 처리)');
+        const receivedSubscription = Notifications.addNotificationReceivedListener((notification) => {
+            // 알림 수신 시 메시지를 스토어에 동기화 (앱 포그라운드)
+            const data = notification.request.content.data as { messageId?: string };
+            if (data?.messageId) {
+                syncNotificationToStore(data.messageId);
+            }
         });
 
         // 알림 클릭 리스너 (사용자가 알림을 탭했을 때)
-        // 주의: 여기서는 스케줄링하지 않음 - HomeScreen에서 처리
-        const responseSubscription = Notifications.addNotificationResponseReceivedListener(() => {
-            // 알림 탭 시 별도 동작 없음 (앱이 열리면 HomeScreen에서 처리)
+        const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+            // 알림 탭 시 메시지를 스토어에 동기화
+            const data = response.notification.request.content.data as { messageId?: string };
+            if (data?.messageId) {
+                syncNotificationToStore(data.messageId);
+            }
         });
 
 

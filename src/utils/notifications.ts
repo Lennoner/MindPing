@@ -19,6 +19,79 @@ Notifications.setNotificationHandler({
 
 // AsyncStorage 키
 const SCHEDULE_DATE_KEY = 'mindping_last_schedule_date';
+const SCHEDULED_MSGS_KEY = 'mindping_scheduled_messages';
+
+// 글로벌 실행 중 락 (동시 호출 방지)
+let isScheduling = false;
+
+/**
+ * 예약된 메시지 ID를 날짜별로 AsyncStorage에 저장
+ * (알림 발송 후 앱을 열었을 때 동일 메시지를 보여주기 위함)
+ */
+async function saveScheduledMessage(dateStr: string, messageId: string) {
+    try {
+        const stored = await AsyncStorage.getItem(SCHEDULED_MSGS_KEY);
+        const map: Record<string, string> = stored ? JSON.parse(stored) : {};
+        map[dateStr] = messageId;
+        // 14일 이전 데이터 정리
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 14);
+        for (const key of Object.keys(map)) {
+            if (new Date(key).getTime() < cutoff.getTime()) delete map[key];
+        }
+        await AsyncStorage.setItem(SCHEDULED_MSGS_KEY, JSON.stringify(map));
+    } catch (e) {
+        console.error('[Notifications] saveScheduledMessage error:', e);
+    }
+}
+
+async function getScheduledMessageId(dateStr: string): Promise<string | null> {
+    try {
+        const stored = await AsyncStorage.getItem(SCHEDULED_MSGS_KEY);
+        if (!stored) return null;
+        const map: Record<string, string> = JSON.parse(stored);
+        return map[dateStr] || null;
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * 알림 수신/탭 시 메시지를 스토어에 동기화 (_layout.tsx의 리스너에서 호출)
+ * 동기화 후 해당 알림의 OS 예약도 취소하여 중복 알림 방지
+ */
+export async function syncNotificationToStore(messageId: string) {
+    const messageStore = useMessageStore.getState();
+    if (messageStore.hasTodayMessage()) return; // 이미 오늘 메시지 있음
+
+    const msgObj = SAMPLE_MESSAGES.find(m => m.id === messageId);
+    if (!msgObj) return;
+
+    messageStore.addMessage({
+        id: msgObj.id,
+        content: msgObj.content,
+        category: msgObj.type,
+        receivedAt: new Date(),
+        isRead: false,
+    });
+    useUserStore.getState().setLastMessage(msgObj.id, msgObj.type);
+
+    // 해당 메시지의 OS 예약 알림을 취소하여 중복 알림 배너 방지
+    try {
+        const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+        for (const n of scheduled) {
+            const data = n.content.data as { messageId?: string };
+            if (data?.messageId === messageId) {
+                await Notifications.cancelScheduledNotificationAsync(n.identifier);
+                console.log('[Notifications] 동기화 완료, OS 예약 알림 취소:', n.identifier);
+            }
+        }
+    } catch (e) {
+        console.error('[Notifications] OS 알림 취소 중 오류:', e);
+    }
+
+    console.log('[Notifications] 알림 수신/탭으로 메시지 스토어 동기화 완료:', msgObj.id);
+}
 
 /**
  * 오늘 날짜 문자열 반환 (YYYY-MM-DD)
@@ -127,52 +200,83 @@ function getRandomTimeInSlot(slot: string, baseDate: Date): Date {
  * - 오늘 메시지 확인 및 동기화
  * - 향후 7일치 스케줄링 보장
  * 
- * 핵심: 하루에 단 한 번만 스케줄링을 수행함 (AsyncStorage 기반 락)
+ * 핵심: 하루에 단 한 번만 스케줄링을 수행함 (AsyncStorage 기반 락 + 실제 스케줄 확인)
  * 스토어(hasTodayMessage)를 진실의 원천으로 사용
  */
-export async function ensureMessageSchedule(userTimeSlots: string[], immediateFirst: boolean = false) {
+export async function ensureMessageSchedule(userTimeSlots: string[]) {
     if (userTimeSlots.length === 0) return;
+
+    // 글로벌 실행 중 락: 이미 스케줄링 중이면 즉시 리턴 (동시 호출 완전 차단)
+    if (isScheduling) {
+        console.log('[Notifications] 이미 스케줄링 진행 중. 중복 호출 무시.');
+        return;
+    }
+    isScheduling = true;
 
     const messageStore = useMessageStore.getState();
     const todayStr = getTodayDateString();
 
-    // ─── 1단계: 오늘 메시지가 스토어에 이미 있는지 확인 ───
-    // 스토어에 오늘 메시지가 있으면 = 오늘 할 일은 끝난 것
-    const hasTodayInStore = messageStore.hasTodayMessage();
-
-    if (hasTodayInStore) {
-        // 오늘 메시지가 이미 존재 → 오늘 메시지 생성은 건너뜀
-        // 미래 스케줄링만 보장하면 됨 (하루 1회 제한 적용)
-        const lastScheduleDate = await AsyncStorage.getItem(SCHEDULE_DATE_KEY);
-        if (lastScheduleDate === todayStr) {
-            // 이미 오늘 스케줄링 완료 → 완전 스킵
-            console.log('[Notifications] 오늘 이미 스케줄링 완료. 스킵합니다.');
-            return;
-        }
-    }
-
     try {
-        // ─── 2단계: 오늘 메시지가 없다면 생성 ───
-        if (!hasTodayInStore) {
-            // 스케줄에서 오늘 예약된 알림이 있는지 확인
-            const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
-            const today = new Date();
-            const todayDateStr = today.toDateString();
+        // ─── 0단계: 오염된 스케줄 정리 (중복 제거) ───
+        const currentSchedule = await Notifications.getAllScheduledNotificationsAsync();
+        const notifsByDate: Record<string, string[]> = {};
 
-            const todaySchedule = scheduledNotifications.find(n => {
-                const trigger = n.trigger as any;
-                if (!trigger?.date) return false;
-                const triggerDate = new Date(trigger.date);
-                return !isNaN(triggerDate.getTime()) && triggerDate.toDateString() === todayDateStr;
-            });
+        for (const n of currentSchedule) {
+            const trigger = n.trigger as any;
+            // 1. 유효하지 않은 트리거(과거의 반복 알림 등)는 즉시 취소
+            if (!trigger || !trigger.date) {
+                console.log('[Notifications] 유효하지 않은 트리거(반복/구형) 발견, 즉시 취소:', n.identifier);
+                await Notifications.cancelScheduledNotificationAsync(n.identifier);
+                continue;
+            }
 
-            if (todaySchedule) {
-                // A. 스케줄에 있으면 → 그 메시지를 스토어로 가져옴 (Sync)
-                const data = todaySchedule.content.data as { messageId?: string };
+            const d = new Date(trigger.date);
+            if (isNaN(d.getTime())) {
+                console.log('[Notifications] 오염된 날짜 데이터 발견, 즉시 취소:', n.identifier);
+                await Notifications.cancelScheduledNotificationAsync(n.identifier);
+                continue;
+            }
+
+            // 날짜 정규화 (YYYY-MM-DD)
+            const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+            if (!notifsByDate[dateKey]) {
+                notifsByDate[dateKey] = [];
+            }
+            notifsByDate[dateKey].push(n.identifier);
+        }
+
+        // 각 날짜별로 1개만 남기고 나머지는 모두 취소
+        for (const [dateKey, ids] of Object.entries(notifsByDate)) {
+            if (ids.length > 1) {
+                console.log(`[Notifications] ${dateKey}에 ${ids.length}개의 중복 알림 발견, 정리 중...`);
+                // 첫 번째 것만 남기고 나머지 취소
+                for (let i = 1; i < ids.length; i++) {
+                    await Notifications.cancelScheduledNotificationAsync(ids[i]);
+                }
+            }
+        }
+
+        // ─── 1단계: 오늘 메시지가 스토어에 이미 있는지 확인 ───
+        const hasTodayInStore = messageStore.hasTodayMessage();
+
+        if (hasTodayInStore) {
+            // 오늘 메시지가 이미 존재함
+            // 하지만 스토리지 키가 없을 수도 있으므로(데이터 삭제 등) 업데이트
+            await AsyncStorage.setItem(SCHEDULE_DATE_KEY, todayStr);
+        } else {
+            // ─── 2단계: 오늘 메시지가 없다면 생성 ───
+            // A. 오늘 날짜로 예약된 알림이 있는지 확인 (방금 중복 정리했으므로 최대 1개)
+            const todayScheduleId = notifsByDate[todayStr]?.[0];
+
+            if (todayScheduleId) {
+                // 스케줄에 있음 -> 해당 메시지를 스토어로 동기화
+                const scheduledNotif = currentSchedule.find(n => n.identifier === todayScheduleId);
+                const data = scheduledNotif?.content.data as { messageId?: string };
                 const msgObj = SAMPLE_MESSAGES.find(m => m.id === data?.messageId);
-                const triggerDate = new Date((todaySchedule.trigger as any).date);
 
-                if (msgObj) {
+                if (msgObj && scheduledNotif) {
+                    const triggerDate = new Date((scheduledNotif.trigger as any).date);
                     messageStore.addMessage({
                         id: msgObj.id,
                         content: msgObj.content,
@@ -181,17 +285,31 @@ export async function ensureMessageSchedule(userTimeSlots: string[], immediateFi
                         isRead: false,
                     });
                     useUserStore.getState().setLastMessage(msgObj.id, msgObj.type);
+
+                    // ★ 핵심 수정: 동기화 후 해당 예약 알림을 즉시 취소
+                    // 이렇게 하지 않으면 OS가 예약 시간에 알림을 또 보냄
+                    await Notifications.cancelScheduledNotificationAsync(todayScheduleId);
+                    console.log('[Notifications] 오늘 예약 알림 동기화 후 취소 완료:', todayScheduleId);
                 }
             } else {
-                // B. 스토어에도 없고 스케줄에도 없음 → 즉시 생성
+                // B. 스토어에도 없고 스케줄에도 없음 -> 즉시 발송 처리 (혹은 지난 알림 복구)
                 const triggerDate = new Date();
+                // 약간 과거로 설정하여 '도착함' 상태로 만듦
                 triggerDate.setMinutes(triggerDate.getMinutes() - 1);
 
-                const scheduledIds = (await Notifications.getAllScheduledNotificationsAsync())
-                    .map(n => (n.content.data as any)?.messageId)
-                    .filter((id: string) => !!id);
+                const storedMsgId = await getScheduledMessageId(todayStr); // 이전에 저장해둔게 있는지 확인
+                let selected;
 
-                const selected = selectRandomMessage(scheduledIds);
+                if (storedMsgId) {
+                    selected = SAMPLE_MESSAGES.find(m => m.id === storedMsgId) || selectRandomMessage([]);
+                    console.log('[Notifications] 저장된 예약 메시지 ID로 복구:', storedMsgId);
+                } else {
+                    // 예약된 모든 ID 수집 (중복 추천 방지)
+                    const scheduledIds = currentSchedule
+                        .map(n => (n.content.data as any)?.messageId)
+                        .filter((id: string) => !!id);
+                    selected = selectRandomMessage(scheduledIds);
+                }
 
                 messageStore.addMessage({
                     id: selected.id,
@@ -201,51 +319,37 @@ export async function ensureMessageSchedule(userTimeSlots: string[], immediateFi
                     isRead: false,
                 });
                 useUserStore.getState().setLastMessage(selected.id, selected.type);
+                console.log('[Notifications] 오늘 메시지 즉시 생성 완료');
             }
+
+            // 오늘 처리 완료 마킹
+            await AsyncStorage.setItem(SCHEDULE_DATE_KEY, todayStr);
         }
 
         // ─── 3단계: 미래 스케줄링 보장 (내일부터 +7일) ───
-        const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
 
-        // 중복 알림 정리 (동일 날짜에 여러 개가 예약된 경우)
-        const notifsByDate: Record<string, string[]> = {};
-        for (const n of scheduledNotifications) {
-            const trigger = n.trigger as any;
-            if (!trigger?.date) continue;
-            const d = new Date(trigger.date);
-            if (isNaN(d.getTime())) continue;
-            const dateStr = d.toDateString();
-            if (!notifsByDate[dateStr]) {
-                notifsByDate[dateStr] = [];
-            }
-            notifsByDate[dateStr].push(n.identifier);
-        }
-
-        // 중복된 알림 취소 (각 날짜에 1개만 유지)
-        for (const [dateStr, ids] of Object.entries(notifsByDate)) {
-            if (ids.length > 1) {
-                console.log(`[Notifications] ${dateStr}에 ${ids.length}개의 중복 알림 발견, 정리 중...`);
-                for (let i = 1; i < ids.length; i++) {
-                    await Notifications.cancelScheduledNotificationAsync(ids[i]);
-                }
-            }
-        }
-
-        // 기존 스케줄된 날짜들 파악
-        const scheduledDates = new Set(Object.keys(notifsByDate));
-
-        // 이미 예약된 메시지 ID들 (중복 방지)
-        const scheduledIds = scheduledNotifications
+        // 예약된 메시지 ID 목록 (중복 추천 방지용) update
+        const finalSchedule = await Notifications.getAllScheduledNotificationsAsync();
+        const scheduledIds = finalSchedule
             .map(n => (n.content.data as any)?.messageId)
             .filter((id: string) => !!id);
 
         const today = new Date();
+
         for (let i = 1; i <= 7; i++) {
             const targetDate = new Date(today);
             targetDate.setDate(today.getDate() + i);
-            const dateStr = targetDate.toDateString();
+            const dateKey = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
 
-            if (!scheduledDates.has(dateStr)) {
+            const exists = finalSchedule.some(n => {
+                const trigger = n.trigger as any;
+                if (!trigger?.date) return false;
+                const d = new Date(trigger.date);
+                const dKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                return dKey === dateKey;
+            });
+
+            if (!exists) {
                 const randomSlot = userTimeSlots[Math.floor(Math.random() * userTimeSlots.length)];
                 const triggerTime = getRandomTimeInSlot(randomSlot, targetDate);
 
@@ -264,15 +368,15 @@ export async function ensureMessageSchedule(userTimeSlots: string[], immediateFi
                     },
                 });
 
-                console.log(`Scheduled for ${dateStr}: ${triggerTime.toLocaleTimeString()}`);
+                console.log(`[Notifications] 예약됨: ${dateKey} ${triggerTime.toLocaleTimeString()}`);
+                await saveScheduledMessage(dateKey, selected.id);
             }
         }
 
-        // ─── 4단계: 오늘 스케줄링 완료 기록 ───
-        await AsyncStorage.setItem(SCHEDULE_DATE_KEY, todayStr);
-
     } catch (error) {
         console.error('[Notifications] 스케줄링 중 오류 발생:', error);
+    } finally {
+        isScheduling = false;
     }
 }
 
@@ -281,27 +385,35 @@ export async function ensureMessageSchedule(userTimeSlots: string[], immediateFi
  */
 export async function rescheduleFromTomorrow(userTimeSlots: string[]) {
     try {
-        // 기존 예약된 알림 중 오늘 이후 것만 취소
         const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
         const today = new Date();
-        const todayDateStr = today.toDateString();
+        const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
         for (const n of scheduledNotifications) {
             const trigger = n.trigger as any;
-            if (!trigger?.date) continue;
-            const d = new Date(trigger.date);
-            if (isNaN(d.getTime())) continue;
 
-            // 오늘 이후(내일~)의 알림만 취소
-            if (d.toDateString() !== todayDateStr) {
+            // 유효하지 않은 트리거(반복 알림 등)는 즉시 취소
+            if (!trigger?.date) {
+                await Notifications.cancelScheduledNotificationAsync(n.identifier);
+                console.log('[Notifications] reschedule: 유효하지 않은 트리거 취소:', n.identifier);
+                continue;
+            }
+
+            const d = new Date(trigger.date);
+            if (isNaN(d.getTime())) {
+                await Notifications.cancelScheduledNotificationAsync(n.identifier);
+                console.log('[Notifications] reschedule: 오염된 날짜 취소:', n.identifier);
+                continue;
+            }
+
+            const dKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+            // 오늘이 아닌(내일 이후) 알림 취소
+            if (dKey !== todayKey) {
                 await Notifications.cancelScheduledNotificationAsync(n.identifier);
             }
         }
 
-        // 스케줄링 락 리셋하여 미래 스케줄 재생성 허용
-        await AsyncStorage.removeItem(SCHEDULE_DATE_KEY);
-
-        // 미래 스케줄 재생성
         if (userTimeSlots.length > 0) {
             await ensureMessageSchedule(userTimeSlots);
         }
@@ -312,5 +424,5 @@ export async function rescheduleFromTomorrow(userTimeSlots: string[]) {
 
 // 기존 함수 호환성 유지 (Onboarding 등에서 호출)
 export async function scheduleRandomDailyMessage(userTimeSlots: string[], immediate: boolean = false) {
-    return ensureMessageSchedule(userTimeSlots, immediate);
+    return ensureMessageSchedule(userTimeSlots);
 }
