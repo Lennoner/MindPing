@@ -23,7 +23,7 @@ export default function HomeScreen() {
     const hour = today.getHours();
     const greeting = hour < 12 ? '좋은 아침이에요' : hour < 18 ? '좋은 오후예요' : '편안한 밤 되세요';
     const userName = user?.nickname || '사용자';
-    const todayDateStr = today.toISOString().split('T')[0];
+    const todayDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     const hasTodayEntry = !!getEntryByDate(todayDateStr);
 
     // 앱 시작 시 스케줄 점검 (Zustand hydration 완료 후 1회만 실행)

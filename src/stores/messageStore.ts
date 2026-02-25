@@ -49,29 +49,38 @@ export const useMessageStore = create<MessageState>()(
 
             // 핵심: 메시지 추가 (홈 + 보관함 동시 처리)
             addMessage: (message) => {
-                // UTC가 아닌 로컬 시간 기준으로 '오늘' 날짜 생성 (YYYY-MM-DD)
-                const now = new Date();
-                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                // set의 콜백 형태를 사용하여 원자적으로 상태를 읽고 업데이트
+                // 이렇게 하면 ensureMessageSchedule과 syncNotificationToStore가
+                // 동시에 실행되어도 같은 날에 두 개의 메시지가 저장되는 경쟁 조건을 방지
+                set((state) => {
+                    // UTC가 아닌 로컬 시간 기준으로 '오늘' 날짜 생성 (YYYY-MM-DD)
+                    const now = new Date();
+                    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-                const state = get();
+                    // 이미 오늘 다른 메시지가 존재하면 덮어쓰지 않음 (하루 1개 보장)
+                    const alreadyHasToday = state.todayDate === todayStr && state.todayMessage !== null;
+                    if (alreadyHasToday && state.todayMessage!.id !== message.id) {
+                        return {}; // 오늘 메시지가 이미 있고 다른 ID이면 변경 없음
+                    }
 
-                // 기존 메시지 리스트에서 같은 ID가 있다면 제거 (중복된 메시지 수신 시 최신화 효과)
-                const existingFiltered = state.messages.filter(m => m.id !== message.id);
+                    // 기존 메시지 리스트에서 같은 ID가 있다면 제거 (중복된 메시지 수신 시 최신화 효과)
+                    const existingFiltered = state.messages.filter(m => m.id !== message.id);
 
-                // 새 메시지를 맨 앞에 추가 (최신 메시지가 위로)
-                // 보관함은 최대 100개 유지
-                const newMessages = [message, ...existingFiltered].slice(0, 100);
+                    // 새 메시지를 맨 앞에 추가 (최신 메시지가 위로)
+                    // 보관함은 최대 100개 유지
+                    const newMessages = [message, ...existingFiltered].slice(0, 100);
 
-                set({
-                    // 홈 화면용
-                    todayMessage: message,
-                    todayDate: todayStr,
-                    // 보관함 업데이트
-                    messages: newMessages,
-                    // 중복 방지 ID 추가 (없으면 추가)
-                    allReceivedIds: state.allReceivedIds.includes(message.id)
-                        ? state.allReceivedIds
-                        : [...state.allReceivedIds, message.id],
+                    return {
+                        // 홈 화면용
+                        todayMessage: message,
+                        todayDate: todayStr,
+                        // 보관함 업데이트
+                        messages: newMessages,
+                        // 중복 방지 ID 추가 (없으면 추가)
+                        allReceivedIds: state.allReceivedIds.includes(message.id)
+                            ? state.allReceivedIds
+                            : [...state.allReceivedIds, message.id],
+                    };
                 });
             },
 
